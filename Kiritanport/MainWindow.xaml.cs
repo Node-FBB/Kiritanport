@@ -45,7 +45,7 @@ namespace Kiritanport
             pdic_kansai = pdic;
 
             //テスト用辞書
-            wdic.AddWord("東北きりたん", "<S>ク^ソガキ<N>", WordClass.人名, WordPriority.MID);
+            wdic.AddWord("東北きりたん", "<S>^ポ!ポコ<N>", WordClass.人名, WordPriority.MID);
             wdic.Save();
 
             if (File.Exists(wdic.PathDic))

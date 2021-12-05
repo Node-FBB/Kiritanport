@@ -68,7 +68,22 @@ namespace Kiritanport
             }
 
 
-            if(File.Exists(@".\APIs\VOICEVOX\VoicevoxAPI.exe"))
+            StreamReader reader = new(@".\settings.ini");
+            while (reader.ReadLine() is string str)
+            {
+                if (str.StartsWith("DirVoiceroid="))
+                {
+                    string path = str["DirVoiceroid=".Length..];
+
+                    if (Directory.Exists(path))
+                    {
+                        apis["voiceroid"].StartInfo.Arguments = $"\"{path}\"";
+                    }
+                }
+            }
+
+
+            if (File.Exists(@".\APIs\VOICEVOX\VoicevoxAPI.exe"))
             {
                 apis["voicevox"].StartInfo.FileName = @".\APIs\VOICEVOX\VoicevoxAPI.exe";
             }
