@@ -8,7 +8,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kiritanport", "Kiritanport\Kiritanport.csproj", "{AA80AA17-193E-48C3-BDCB-457C6FA2B4DD}"
 	ProjectSection(ProjectDependencies) = postProject
 		{71BA4CAF-581B-4215-978B-D173B8A48980} = {71BA4CAF-581B-4215-978B-D173B8A48980}
+		{90DE7ED5-7527-4D09-AE06-ED7783A64415} = {90DE7ED5-7527-4D09-AE06-ED7783A64415}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceroidAPI", "VoiceroidAPI\VoiceroidAPI.csproj", "{90DE7ED5-7527-4D09-AE06-ED7783A64415}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +27,10 @@ Global
 		{AA80AA17-193E-48C3-BDCB-457C6FA2B4DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA80AA17-193E-48C3-BDCB-457C6FA2B4DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AA80AA17-193E-48C3-BDCB-457C6FA2B4DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90DE7ED5-7527-4D09-AE06-ED7783A64415}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90DE7ED5-7527-4D09-AE06-ED7783A64415}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90DE7ED5-7527-4D09-AE06-ED7783A64415}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90DE7ED5-7527-4D09-AE06-ED7783A64415}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
