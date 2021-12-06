@@ -89,9 +89,8 @@ while (Console.ReadLine() is string read_line)
             return;
 
         case "clear":
-            //メモリ上の音声ファイルの消去する（ファイル名を指定するかallですべて）
-            //ファイルが消去されるかどうかはGCが決めるため、正確には参照を破棄するだけ
-            //別プロセスで指定したMemoryMappedFileを参照している状態でこのコマンドを使わないように
+            //メモリ上の音声ファイルを破棄する（ファイル名を指定するか、allですべての参照を対象にできる）
+            //メモリ上のファイルが消去されるかどうかはGCが決めるため、即座に解放されるとは限らない
 
             string mmf_name = read_line["clear<".Length..];
 
@@ -232,7 +231,7 @@ while (Console.ReadLine() is string read_line)
                     result.Content.ReadAsStream().CopyTo(wavData);
 
                     //適当な名前を付けてMemoryMappedFileを作成
-                    string name = $"voicevox_{mmfiles.Count}";
+                    string name = $"voicevox_{id}";
                     MemoryMappedFile mmf = MemoryMappedFile.CreateNew(name, wavData.Length);
                     mmf.CreateViewStream().Write(wavData.ToArray(), 0, (int)wavData.Length);
                     mmfiles[name] = mmf;

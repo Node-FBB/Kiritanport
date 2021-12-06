@@ -7,9 +7,9 @@
         mc:Ignorable="d" Height="450" Width="800" Loaded="Window_Loaded" Title="" Closing="Window_Closing">
     <Grid x:Name="G_Root">
         <Label Content="Phrase List" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
-        <local:CustomListBox x:Name="CLB_PhraseList" d:ItemsSource="{d:SampleData ItemCount=5}" Width="550" Height="210" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,25,0,0" Loaded="CustomListBox_Loaded"/>
+        <local:PhraseListView x:Name="PL_PhraseList" d:ItemsSource="{d:SampleData ItemCount=5}" Width="550" Height="210" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,25,0,0" Loaded="CustomListBox_Loaded"/>
         <Button Content="Play" HorizontalAlignment="Left" Margin="465,240,0,0" VerticalAlignment="Top" Click="Button_Click" Width="30" Focusable="False" Height="20"/>
-        <Button Content="Stop" HorizontalAlignment="Left" Margin="495,240,0,0" VerticalAlignment="Top" Width="30" Height="20"/>
+        <Button x:Name="BT_Stop" Content="Stop" HorizontalAlignment="Left" Margin="495,240,0,0" VerticalAlignment="Top" Width="30" Height="20"/>
         <Button Content="Save" HorizontalAlignment="Left" Margin="535,240,0,0" VerticalAlignment="Top" Width="30" Height="20"/>
         <Label Content="Voice Preset" HorizontalAlignment="Left" Margin="10,260,0,0" VerticalAlignment="Top"/>
         <ComboBox x:Name="CB_PresetList" HorizontalAlignment="Left" Margin="15,285,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="CB_PresetList_SelectionChanged"/>
@@ -18,19 +18,19 @@
             <ComboBox x:Name="CB_VoiceList" Width="80" VerticalAlignment="Center" Margin="10,0,0,0"/>
             <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
                 <Label Content="音量" VerticalAlignment="Center" Width="40" HorizontalContentAlignment="Center"/>
-                <local:NumericUpDown x:Name="Num_Vol" Minimum="0" VerticalAlignment="Center"/>
+                <local:VoiceParameterView x:Name="VP_Vol" Minimum="0" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
                 <Label Content="話速" VerticalAlignment="Center" Width="40" HorizontalContentAlignment="Center"/>
-                <local:NumericUpDown x:Name="Num_Spd" Maximum="4" VerticalAlignment="Center"/>
+                <local:VoiceParameterView x:Name="VP_Spd" Maximum="4" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
                 <Label Content="音程" VerticalAlignment="Center" Width="40" HorizontalContentAlignment="Center"/>
-                <local:NumericUpDown x:Name="Num_Pit" VerticalAlignment="Center"/>
+                <local:VoiceParameterView x:Name="VP_Pit" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
                 <Label Content="抑揚" VerticalAlignment="Center" Width="40" HorizontalContentAlignment="Center"/>
-                <local:NumericUpDown x:Name="Num_EMPH"/>
+                <local:VoiceParameterView x:Name="VP_EMPH"/>
             </StackPanel>
         </StackPanel>
         <Label Content="Word List" HorizontalAlignment="Right" VerticalAlignment="Top" Width="180" Margin="0,0,20,0"/>
@@ -39,8 +39,8 @@
         <Label Content="Word Edit" HorizontalAlignment="Right" Margin="0,265,20,0" VerticalAlignment="Top" Width="180"/>
         <TextBox x:Name="TB_WordText" HorizontalAlignment="Right" Margin="0,290,15,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="180" Height="20"/>
         <TextBox x:Name="TB_WordKana" HorizontalAlignment="Right" Margin="0,315,15,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="180" Height="20"/>
-        <Button Content="Play" HorizontalAlignment="Right" Margin="0,365,55,0" VerticalAlignment="Top" Width="30" Height="20"/>
-        <Button Content="Save" HorizontalAlignment="Right" Margin="0,365,15,0" VerticalAlignment="Top" Width="30" Height="20"/>
+        <Button Content="Play" HorizontalAlignment="Right" Margin="0,365,55,0" VerticalAlignment="Top" Width="30" Height="20" Click="Button_Click_Word_Play"/>
+        <Button Content="Save" HorizontalAlignment="Right" Margin="0,365,15,0" VerticalAlignment="Top" Width="30" Height="20" Click="Button_Click_Word_Save"/>
         <ComboBox x:Name="CB_WordClass" HorizontalAlignment="Right" Margin="0,340,15,0" VerticalAlignment="Top" Width="180"/>
         <StatusBar VerticalAlignment="Bottom" MouseLeftButtonDown="StatusBar_MouseLeftButtonDown">
             <TextBlock x:Name="TB_Log" TextWrapping="Wrap"/>

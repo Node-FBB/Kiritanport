@@ -11,6 +11,9 @@ namespace Kiritanport
 {
     internal class PhraseEditView : Grid
     {
+        public new bool IsFocused => kana.IsFocused;
+        public string Text { set { kana.Text = value; } get { return kana.Text; } }
+
         private event RoutedEventHandler Click;
         public event MyEventHandler? SelectionChanged;
 
@@ -168,17 +171,27 @@ namespace Kiritanport
 
         private void Kana_SelectionChanged(object sender, RoutedEventArgs e)
         {
-            SelectionChanged?.Invoke(sender, new MyEventArgs() { Data = GetAIKana(kana.SelectionStart, kana.SelectionLength) });
+            SelectionChanged?.Invoke(sender, new MyEventArgs() { Data = SelectedAIKana });
         }
 
         private void Kana_TextChanged(object sender, TextChangedEventArgs e)
         {
+            kana.Visibility = kana.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
             if (kana.Text.Length == 0)
             {
-                kana.Visibility = Visibility.Collapsed;
+                Clear();
                 return;
             }
-            kana.Visibility = Visibility.Visible;
+
+            TextChange change = e.Changes.Last();
+            int row = change.Offset;
+            int rem_count = change.RemovedLength;
+            int add_length = change.AddedLength;
+            Remove(row, rem_count);
+            string str = kana.Text.Substring(row, add_length);
+            Insert(row, str);
+            Repaint();
         }
 
         private void PhraseEditView_Click(object sender, RoutedEventArgs e)
@@ -203,8 +216,6 @@ namespace Kiritanport
 
         public void Repaint()
         {
-            kana.Text = GetHKana();
-
             //　一旦消去
             for (int row = 0; row < ROW_MAX; row++)
             {
@@ -433,42 +444,31 @@ namespace Kiritanport
                             break;
                         case '<':
 
-                            var tag = ai_kana.Substring(i, 3);
-
-                            switch (tag)
+                            if (ai_kana[i + 2] != '>')
                             {
-                                case "<S>":
-                                    if (i > 0)
-                                    {
-                                        throw new FormatException();
-                                    }
-                                    phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_START, PhraseElement.VALUE_M, 'S'));
-                                    break;
-                                case "<F>":
-                                    phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_END, PhraseElement.VALUE_M, '。'));
-                                    Repaint();
-                                    return;
-                                case "<R>":
-                                    phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_END, PhraseElement.VALUE_M, '？'));
-                                    Repaint();
-                                    return;
-                                case "<A>":
-                                    phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_END, PhraseElement.VALUE_M, '！'));
-                                    Repaint();
-                                    return;
-                                case "<H>":
-                                    phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_END, PhraseElement.VALUE_M, '♪'));
-                                    Repaint();
-                                    return;
-                                case "<C>":
-                                    phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_END, PhraseElement.VALUE_M, '、'));
-                                    Repaint();
-                                    return;
-                                case "<N>":
-                                    phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_END, PhraseElement.VALUE_M, '　'));
-                                    Repaint();
-                                    return;
+                                throw new FormatException();
+                            }
 
+                            char tag = ai_kana[i + 1];
+
+                            if (tag == 'S')
+                            {
+                                if (i > 0)
+                                {
+                                    throw new FormatException();
+                                }
+                                phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_START, PhraseElement.VALUE_M, 'S'));
+                            }
+                            else if ("FRAHCN".Contains(tag))
+                            {
+                                phrase.Add(new PhraseElement(PhraseElement.TYPE_PHRASE_END, PhraseElement.VALUE_M, "。？！♪、　"["FRAHCN".IndexOf(tag)]));
+                                //イベントループ回避
+                                kana.TextChanged -= Kana_TextChanged;
+                                kana.Text = GetHKana();
+                                kana.Visibility = kana.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+                                kana.TextChanged += Kana_TextChanged;
+                                Repaint();
+                                return;
                             }
                             break;
                     }
@@ -476,12 +476,10 @@ namespace Kiritanport
             }
             throw new FormatException();
         }
-        public string GetAIKANA()
-        {
-            return GetAIKana(0, phrase.Count);
-        }
+        public string SelectedAIKana => GetAIKana(kana.SelectionStart, kana.SelectionLength);
+        public string AIKana => GetAIKana(0, phrase.Count);
 
-        public string GetAIKana(int offset, int length)
+        private string GetAIKana(int offset, int length)
         {
             var ai_kana = START;
 
@@ -798,7 +796,7 @@ namespace Kiritanport
             }
         }
 
-        public void Clear()
+        private void Clear()
         {
             phrase.Clear();
             Repaint();

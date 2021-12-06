@@ -13,7 +13,7 @@ using System.Windows.Media;
 
 namespace Kiritanport
 {
-    internal class NumericUpDown : StackPanel
+    internal class VoiceParameterView : StackPanel
     {
         private readonly TextBox tbox;
         private readonly ScrollBar sbar;
@@ -75,7 +75,7 @@ namespace Kiritanport
             }
         }
 
-        public NumericUpDown()
+        public VoiceParameterView()
         {
             Orientation = Orientation.Horizontal;
             HorizontalAlignment = HorizontalAlignment.Center;

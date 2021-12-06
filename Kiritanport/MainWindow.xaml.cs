@@ -29,10 +29,28 @@ namespace Kiritanport
         private PhraseDictionary? pdic_standard;
         private PhraseDictionary? pdic_kansai;
 
+        private new bool IsEnabled
+        {
+            set
+            {
+                if (Content is Grid root)
+                {
+                    foreach (UIElement ui in root.Children)
+                    {
+                        if (ui is not Label && ui is not TextBlock && ui is not StatusBar)
+                        {
+                            ui.IsEnabled = value;
+                        }
+                    }
+                }
+            }
+        }
+
         public MainWindow()
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             InitializeComponent();
+            IsEnabled = false;
         }
         private void Init()
         {
@@ -45,7 +63,7 @@ namespace Kiritanport
             pdic_kansai = pdic;
 
             //テスト用辞書
-            wdic.AddWord("東北きりたん", "<S>^ポ!ポコ<N>", WordClass.人名, WordPriority.MID);
+            wdic.AddWord("東北きりたん", "<S>キ^リタンポ!ポコ<N>", WordClass.人名, WordPriority.MID);
             wdic.Save();
 
             if (File.Exists(wdic.PathDic))
@@ -75,7 +93,7 @@ namespace Kiritanport
                 }
             };
 
-            CLB_PhraseList.TextSelected += (sender, e) =>
+            PL_PhraseList.TextSelected += (sender, e) =>
             {
                 if (e.Data is string str)
                 {
@@ -84,7 +102,7 @@ namespace Kiritanport
                 }
             };
 
-            CLB_PhraseList.KanaSelected += (sender, e) =>
+            PL_PhraseList.KanaSelected += (sender, e) =>
             {
                 if (e.Data is string str)
                 {
@@ -93,13 +111,19 @@ namespace Kiritanport
                 }
             };
 
-            CLB_PhraseList.OnSpeech += (sender, e) =>
+            PL_PhraseList.OnSpeech += (sender, e) =>
             {
-                if (e.Data is SpeechData str)
+                if (e.Data is SpeechData data)
                 {
-                    WordDictionary dic = str.Dialect == TDialect.Standard ? wdic_standard : wdic_kansai;
+                    prev = data;
 
-                    dic.FindWords(str.Text, out List<Word> words);
+                    TB_WordKana.IsEnabled = true;
+                    TB_WordText.IsEnabled = true;
+                    CB_WordClass.IsEnabled = true;
+
+                    WordDictionary dic = data.Dialect == TDialect.Standard ? wdic_standard : wdic_kansai;
+
+                    dic.FindWords(data.Text, out List<Word> words);
 
                     LB_WordList.Items.Clear();
 
@@ -126,6 +150,20 @@ namespace Kiritanport
                 }
             };
 
+            IInputElement? element = null;
+            PL_PhraseList.SpeechEnd += (sender, e) =>
+            {
+                IsEnabled = true;
+                BT_Stop.IsEnabled = false;
+                element?.Focus();
+            };
+            PL_PhraseList.SpeechBegin += (sender, e) =>
+            {
+                element = FocusManager.GetFocusedElement(this);
+
+                IsEnabled = false;
+                BT_Stop.IsEnabled = true;
+            };
 
             //ユーザープリセットの読み込みをする
 
@@ -149,7 +187,7 @@ namespace Kiritanport
                             Path = new PropertyPath("DataContext"),
                             Mode = BindingMode.Default,
                         };
-                        CLB_PhraseList.AddPreset(preset, binding);
+                        PL_PhraseList.AddPreset(preset, binding);
                         CB_PresetList.Items.Add(item_dst);
                     }
                 }
@@ -161,7 +199,7 @@ namespace Kiritanport
                 {
                     return;
                 }
-                CLB_PhraseList.Rename(CB_PresetList.SelectedIndex);
+                PL_PhraseList.RenamePreset(CB_PresetList.SelectedIndex);
 
                 if (CB_PresetList.SelectedItem is ComboBoxItem citem && citem.Content is VoicePreset preset)
                 {
@@ -182,10 +220,10 @@ namespace Kiritanport
             {
                 if (CB_PresetList.SelectedItem is ComboBoxItem item1 && item1.Content is VoicePreset preset1)
                 {
-                    Num_Vol.Value = preset1.Volume;
-                    Num_Spd.Value = preset1.Speed;
-                    Num_Pit.Value = preset1.Pitch;
-                    Num_EMPH.Value = preset1.PitchRange;
+                    VP_Vol.Value = preset1.Volume;
+                    VP_Spd.Value = preset1.Speed;
+                    VP_Pit.Value = preset1.Pitch;
+                    VP_EMPH.Value = preset1.PitchRange;
 
                     foreach (ComboBoxItem item2 in CB_VoiceList.Items)
                     {
@@ -209,34 +247,36 @@ namespace Kiritanport
                 }
             };
 
-            Num_Vol.ValueChanged += (_, _) =>
+            VP_Vol.ValueChanged += (_, _) =>
             {
                 if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
                 {
-                    preset.Volume = (float)Num_Vol.Value;
+                    preset.Volume = (float)VP_Vol.Value;
                 }
             };
-            Num_Spd.ValueChanged += (_, _) =>
+            VP_Spd.ValueChanged += (_, _) =>
             {
                 if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
                 {
-                    preset.Speed = (float)Num_Spd.Value;
+                    preset.Speed = (float)VP_Spd.Value;
                 }
             };
-            Num_Pit.ValueChanged += (_, _) =>
+            VP_Pit.ValueChanged += (_, _) =>
             {
                 if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
                 {
-                    preset.Pitch = (float)Num_Pit.Value;
+                    preset.Pitch = (float)VP_Pit.Value;
                 }
             };
-            Num_EMPH.ValueChanged += (_, _) =>
+            VP_EMPH.ValueChanged += (_, _) =>
             {
                 if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
                 {
-                    preset.PitchRange = (float)Num_EMPH.Value;
+                    preset.PitchRange = (float)VP_EMPH.Value;
                 }
             };
+            IsEnabled = true;
+            BT_Stop.IsEnabled = false;
         }
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -299,12 +339,12 @@ namespace Kiritanport
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            CLB_PhraseList.SpeechTexts();
+            PL_PhraseList.SpeechPhraseList();
         }
 
         private void CustomListBox_Loaded(object sender, RoutedEventArgs e)
         {
-            CLB_PhraseList.AddLine(false);
+            PL_PhraseList.AddPhraseLine(false);
         }
 
         private void CB_PresetList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -341,7 +381,7 @@ namespace Kiritanport
                             CB_AccentProviderList.SelectedIndex = (int)TAccentProvider.Default;
                         }
                     }
-                    CLB_PhraseList.AccentProvider = provider;
+                    PL_PhraseList.AccentProvider = provider;
                 }
             };
         }
@@ -365,12 +405,71 @@ namespace Kiritanport
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            CLB_PhraseList.AccentLock = true;
+            PL_PhraseList.AccentLock = true;
         }
 
         private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
         {
-            CLB_PhraseList.AccentLock = false;
+            PL_PhraseList.AccentLock = false;
+        }
+
+        private void Button_Click_Word_Play(object sender, RoutedEventArgs e)
+        {
+            if (TB_WordKana.Text.Length == 0)
+            {
+                return;
+            }
+            PL_PhraseList.Speech($"<S>{TB_WordKana.Text}<N>");
+        }
+
+        private SpeechData? prev;
+        private void Button_Click_Word_Save(object sender, RoutedEventArgs e)
+        {
+            if (TB_WordText.Text.Length > 0 && TB_WordKana.Text.Length > 0)
+            {
+                if (CB_WordClass.SelectedItem is ComboBoxItem citem && citem.Content is WordClass wclass)
+                {
+                    if (wdic_standard is not null && wdic_kansai is not null)
+                    {
+                        WordDictionary dic;
+
+                        if (prev is not null)
+                        {
+                            dic = prev.Dialect == TDialect.Standard ? wdic_standard : wdic_kansai;
+
+                            dic.AddWord($"{TB_WordText.Text}", $"<S>{TB_WordKana.Text}<N>", wclass, WordPriority.MID);
+                            dic.Save();
+
+                            dic.FindWords(prev.Text, out List<Word> words);
+
+                            LB_WordList.Items.Clear();
+
+                            foreach (Word word in words)
+                            {
+                                ListBoxItem item = new() { Content = word };
+                                item.Selected += (_, _) =>
+                                {
+                                    TB_WordText.Text = word.Text;
+                                    TB_WordKana.Text = word.AIKana;
+
+                                    foreach (ComboBoxItem item2 in CB_WordClass.Items)
+                                    {
+                                        if (item2.Content is WordClass wc && wc == word.wordClass)
+                                        {
+                                            CB_WordClass.SelectedItem = item2;
+                                            break;
+                                        }
+                                    }
+                                };
+
+                                LB_WordList.Items.Add(item);
+                            }
+                            APIManager.Dictionary(APIManager.VoiceroidAPI, wdic_standard.PathDic);
+                            APIManager.DictionaryKansai(APIManager.VoiceroidAPI, wdic_kansai.PathDic);
+                        }
+                    }
+                }
+            }
         }
     }
 }
