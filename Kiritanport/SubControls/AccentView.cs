@@ -7,15 +7,20 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace Kiritanport
+namespace Kiritanport.SubControls
 {
-    internal class PhraseEditView : Grid
+    internal class AccentView : Grid
     {
         public new bool IsFocused => kana.IsFocused;
+        public bool IsEmpty => kana.Text.Length == 0;
         public string Text { set { kana.Text = value; } get { return kana.Text; } }
 
         private event RoutedEventHandler Click;
         public event MyEventHandler? SelectionChanged;
+        /// <summary>
+        /// 内容の変更を通知するだけ
+        /// </summary>
+        public event MyEventHandler? KanaChanged;
 
         public const int MAX_LENGTH = 256;
         private readonly Button[][] controls;
@@ -86,7 +91,7 @@ namespace Kiritanport
             public char Char;
         }
 
-        public PhraseEditView()
+        public AccentView()
         {
             kana = new TextBox()
             {
@@ -216,6 +221,8 @@ namespace Kiritanport
 
         public void Repaint()
         {
+            KanaChanged?.Invoke(this, new MyEventArgs());
+
             //　一旦消去
             for (int row = 0; row < ROW_MAX; row++)
             {

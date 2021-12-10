@@ -4,14 +4,18 @@ using System.IO;
 using System.Linq;
 using System.Media;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Kiritanport
 {
     public static class WavePlayer
     {
+        private static readonly SoundPlayer soundPlayer = new();
         private static DateTime playtime;
-        static readonly SoundPlayer soundPlayer = new ();
+        private static CancellationTokenSource? ctsource;
+
+        public static event EventHandler? PlayStopped;
         public static void Play(Stream stream)
         {
             stream.Position = 0;
@@ -22,17 +26,31 @@ namespace Kiritanport
             soundPlayer.Play();
 
             WaveInfo info = new(stream);
+            playtime = DateTime.Now + info.Time;
 
-            //44100Hz(44.1kHz) 16bit(=2byte) 1ch
-            //time : wavファイルの長さ[ms]
-            //var time = info.Length / 2 / 44.1;
-            double time = 1000.0 * info.Length / (info.Depth / 8) / info.Sampling / info.Channel;
+            if (ctsource is not null)
+            {
+                ctsource.Cancel();
+            }
+            ctsource = new CancellationTokenSource();
 
-            playtime = DateTime.Now.AddMilliseconds(time);
+            SynchronizationContext? context = SynchronizationContext.Current;
+            Task t = Task.Factory.StartNew(async () =>
+            {
+                await Task.Delay((int)Math.Ceiling(info.Time.TotalMilliseconds));
+                if (ctsource.IsCancellationRequested)
+                {
+                    return;
+                }
+                context?.Post(_ => PlayStopped?.Invoke(null, new EventArgs()), null);
+            }, ctsource.Token);
         }
         public static void Stop()
         {
+            ctsource?.Cancel();
             soundPlayer.Stop();
+            playtime = new();
+            PlayStopped?.Invoke(null, new EventArgs());
         }
 
         public static bool IsPlaying()
@@ -47,6 +65,9 @@ namespace Kiritanport
             public int Sampling { get; private set; }
             public int Depth { get; private set; }
             public int Length { get; private set; }
+
+            //1tick = 100ns > 1s = 10,000,000tick
+            public TimeSpan Time => new(10_000_000L * Length / (Depth / 8) / Sampling / Channel);
 
             public WaveInfo(Stream stream)
             {

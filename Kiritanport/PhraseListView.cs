@@ -1,4 +1,5 @@
-﻿using Kiritanport.Voiceroid;
+﻿using Kiritanport.SubControls;
+using Kiritanport.Voiceroid;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -86,16 +87,30 @@ namespace Kiritanport
                 processing = false;
             }
         }
+        bool notice = false;
+        public void SpeechSelected()
+        {
+            if (SelectedItem is PhraseView sel)
+            {
+                notice = true;
+                SpeechPhrase(sel);
+            }
+        }
 
         private void SpeechPhrase(PhraseView item)
         {
-            received_item = item;
-
-            item.IsSelected = true;
+            if (item.Text.Text.Length == 0)
+            {
+                return;
+            }
 
             if (item.Presets.SelectedItem is ComboBoxItem citem
                 && citem.Content is VoicePreset preset)
             {
+                SpeechBegin?.Invoke(this, new MyEventArgs());
+                processing = true;
+                received_item = item;
+                item.IsSelected = true;
                 SpeechData speech = new();
 
                 string param = "";
@@ -146,35 +161,99 @@ namespace Kiritanport
                 }
                 speech.Text = text;
                 OnSpeech?.Invoke(this, new MyEventArgs() { Data = speech });
-                SpeechBegin?.Invoke(this, new MyEventArgs());
-            }
-            else
-            {
-                processing = false;
             }
         }
-
-        /// <summary>
-        /// フレーズリストを上から順にすべて読み上げる
-        /// </summary>
-        public void SpeechPhraseList()
+        private bool SpeechPhraseFromCache(PhraseView item)
         {
+            if (item.Wave is null)
+            {
+                return false;
+            }
+
+            processing = true;
+            item.IsSelected = true;
+            SpeechBegin?.Invoke(this, new MyEventArgs());
+
+            Task.Factory.StartNew(async () =>
+            {
+                WavePlayer.Play(item.Wave);
+                while (WavePlayer.IsPlaying())
+                {
+                    await Task.Delay(10);
+                }
+                processing = false;
+            });
+
+            return true;
+        }
+
+        public void SpeechPhraseList(bool PrioritizeCache)
+        {
+            ctsource = new CancellationTokenSource();
             SynchronizationContext? context = SynchronizationContext.Current;
 
             Task.Factory.StartNew(async () =>
             {
                 foreach (PhraseView item in Items)
                 {
-                    processing = true;
+                    if (ctsource.Token.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    int silence;
+                    string text = "";
 
-                    context?.Send(_ => SpeechPhrase(item), null);
+                    context?.Send(_ => text = item.Text.Text, null);
+
+                    if ("。！？♪".Contains(text[^1]))
+                    {
+                        silence = 800;
+                    }
+                    else if ('、' == text[^1])
+                    {
+                        silence = 370;
+                    }
+                    else
+                    {
+                        silence = 150;
+                    }
+
+                    bool cached = false;
+
+                    if (PrioritizeCache)
+                    {
+                        context?.Send(_ => cached = SpeechPhraseFromCache(item), null);
+                    }
+                    if (!cached)
+                    {
+                        context?.Send(_ => SpeechPhrase(item), null);
+                    }
 
                     while (processing)
                     {
                         await Task.Delay(10);
                     }
+                    await Task.Delay(silence);
                 }
-            });
+                context?.Send(_ => SpeechEnd?.Invoke(this, new MyEventArgs()), null);
+            }, ctsource.Token);
+        }
+        private CancellationTokenSource? ctsource;
+        public void SpeechCancel()
+        {
+            if (processing)
+            {
+                ctsource?.Cancel();
+                APIManager.KanaReceived -= MainWindow_KanaReceived;
+                APIManager.WaveReceived -= APIManager_WaveReceived;
+                APIManager.Cancel();
+                WavePlayer.Stop();
+                processing = false;
+                received_item = null;
+                prev_speech = false;
+
+                SpeechEnd?.Invoke(this, new MyEventArgs());
+            }
         }
 
         private bool prev_speech = false;
@@ -188,11 +267,10 @@ namespace Kiritanport
                 received_item.Kana.SetAIKANA(text);
                 if (prev_speech)
                 {
-                    APIManager.Speech(received_item.Presets.DataContext, text);
+                    APIManager.Speech((received_item.Presets.SelectedItem as ComboBoxItem)?.DataContext, text);
                 }
             }
 
-            received_item = null;
             prev_speech = false;
         }
         private void APIManager_WaveReceived(object sender, MyEventArgs e)
@@ -202,6 +280,11 @@ namespace Kiritanport
 
             if (e.Data is MemoryStream stream)
             {
+                if (received_item is not null)
+                {
+                    received_item.Wave = stream;
+                }
+
                 WavePlayer.Play(stream);
 
                 Task.Factory.StartNew(async () =>
@@ -211,9 +294,14 @@ namespace Kiritanport
                         await Task.Delay(10);
                     }
                     processing = false;
-                    context?.Send(_ => SpeechEnd?.Invoke(this, new MyEventArgs()), null);
+                    if (notice)
+                    {
+                        context?.Post(_ => SpeechEnd?.Invoke(this, new MyEventArgs()), null);
+                        notice = false;
+                    }
                 });
             }
+            received_item = null;
         }
 
         private readonly List<(VoicePreset preset, Binding binding)> bindlist = new();
@@ -228,7 +316,7 @@ namespace Kiritanport
 
             foreach (PhraseView item in Items)
             {
-                ComboBoxItem item_dst = new() { Content = preset };
+                ComboBoxItem item_dst = new() { Content = preset, Focusable = false };
                 item_dst.SetBinding(DataContextProperty, binding);
 
                 item.Presets.Items.Add(item_dst);
@@ -262,6 +350,59 @@ namespace Kiritanport
         /// <param name="focus"></param>
         public void AddPhraseLine(bool focus)
         {
+            PhraseView dst = CreatePhraseView(focus);
+            if (Items.Count > 0)
+            {
+                if (Items[^1] is PhraseView src)
+                {
+                    dst.Presets.SelectedIndex = src.Presets.SelectedIndex;
+                }
+            }
+            Items.Add(dst);
+            ScrollIntoView(dst);
+        }
+        public void RemovePhraseLine(bool focus)
+        {
+            if (SelectedItem is not null)
+            {
+                SelectedIndex--;
+                if (focus)
+                {
+                    if (SelectedItem is PhraseView phrase)
+                    {
+                        phrase.Text.Focus();
+                    }
+                }
+                Items.Remove(Items[SelectedIndex + 1]);
+            }
+        }
+        public void InsertPhraseLine(bool focus)
+        {
+            PhraseView dst = CreatePhraseView(focus);
+            if (SelectedItem is PhraseView src)
+            {
+                dst.Presets.SelectedIndex = src.Presets.SelectedIndex;
+            }
+            Items.Insert(SelectedIndex + 1, dst);
+            ScrollIntoView(dst);
+        }
+
+        public void EditPhraseLine()
+        {
+            if (SelectedItem is PhraseView src)
+            {
+                if (src.IsAccentVisible)
+                {
+                    src.IsAccentVisible = false;
+                }
+                else
+                {
+                    src.IsAccentVisible = true;
+                }
+            }
+        }
+        private PhraseView CreatePhraseView(bool focus)
+        {
             PhraseView phrase = new();
 
             phrase.Text.SelectionChanged += (sender, e) =>
@@ -291,7 +432,7 @@ namespace Kiritanport
 
             foreach ((VoicePreset preset, Binding binding) in bindlist)
             {
-                ComboBoxItem cbitem = new() { Content = preset };
+                ComboBoxItem cbitem = new() { Content = preset, Focusable = false };
                 cbitem.SetBinding(DataContextProperty, binding);
                 phrase.Presets.Items.Add(cbitem);
             }
@@ -307,186 +448,8 @@ namespace Kiritanport
                 };
             }
 
-            Items.Add(phrase);
+            return phrase;
         }
 
-        private class PhraseView : ListBoxItem
-        {
-            // メモ
-            // Content = grid
-            // grid.children[0] > presets
-            // grid.children[1] > text
-            // item.DataContext = kana
-            // parent(root_grid).view
-            // presets.item.datacontext は cb.item.content(VoicePreset) の voiceName に対応するAPI(Process)にバインドされている
-
-            public TextBox Text { get; init; } = default!;
-            public PhraseEditView Kana { get; init; } = default!;
-            public ComboBox Presets { get; init; } = default!;
-
-            public PhraseView()
-            {
-                Kana = new()
-                {
-                    VerticalAlignment = VerticalAlignment.Top,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    Visibility = Visibility.Collapsed
-                };
-                Grid grid = new()
-                {
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                };
-
-                HorizontalAlignment = HorizontalAlignment.Stretch;
-                HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                Content = grid;
-                Focusable = false;
-                DataContext = Kana;
-
-                Presets = new()
-                {
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    Width = 100,
-                    Focusable = false,
-                };
-                Text = new()
-                {
-                    Margin = new Thickness(100, 0, 0, 0),
-                    HorizontalAlignment = HorizontalAlignment.Stretch
-                };
-
-                Kana.DataContext = this;
-
-                Selected += (sender, e) =>
-                {
-                    Text.Focus();
-                };
-                Text.GotFocus += (sender, e) =>
-                {
-                    if (Parent is PhraseListView parent && parent.SelectedItem != this)
-                    {
-                        parent.SelectedItem = this;
-                    }
-                };
-                Text.PreviewKeyDown += (sender, e) =>
-                {
-                    if (Parent is PhraseListView parent)
-                    {
-                        if (e.Key == Key.Down)
-                        {
-                            e.Handled = true;
-                            int index = parent.Items.IndexOf(this);
-
-                            if (index < parent.Items.Count - 1)
-                            {
-                                if (parent.Items[index + 1] is PhraseView litem)
-                                {
-                                    litem.Text.Focus();
-                                }
-                            }
-                        }
-                        if (e.Key == Key.Up)
-                        {
-                            e.Handled = true;
-                            int index = parent.Items.IndexOf(this);
-
-                            if (index > 0)
-                            {
-                                if (parent.Items[index - 1] is PhraseView litem)
-                                {
-                                    litem.Text.Focus();
-                                }
-                            }
-                        }
-                    }
-                };
-
-                Text.TextChanged += (sender, e) =>
-                {
-                    if (Parent is PhraseListView parent)
-                    {
-                        if (parent.AccentLock)
-                        {
-                            if (Text.Text == "")
-                            {
-                                Kana.Text = "";
-                            }
-                        }
-                        else
-                        {
-                            Kana.Text = "";
-                        }
-                    }
-                };
-
-                Kana.KeyDown += (sender, e) =>
-                {
-                    if (e.Key == Key.Escape)
-                    {
-                        Kana.Text = "";
-                    }
-
-                    if (e.Key == Key.Enter)
-                    {
-                        if (Parent is PhraseListView parent)
-                        {
-                            if (Keyboard.Modifiers == ModifierKeys.Shift)
-                            {
-                                parent.AddPhraseLine(true);
-
-                            }
-                            else
-                            {
-                                parent.SpeechPhrase(this);
-                            }
-                        }
-                    }
-                };
-
-                Text.KeyDown += (sender, e) =>
-                {
-                    if (e.Key == Key.Escape)
-                    {
-                        Kana.Text = "";
-                    }
-
-                    if (e.Key == Key.Enter)
-                    {
-                        if (Parent is PhraseListView parent)
-                        {
-                            if (Keyboard.Modifiers == ModifierKeys.Shift)
-                            {
-                                parent.AddPhraseLine(true);
-
-                            }
-                            else
-                            {
-                                parent.SpeechPhrase(this);
-                            }
-                        }
-                    }
-                    if (e.Key == Key.Tab)
-                    {
-                        e.Handled = true;
-
-                        if (Kana.Visibility == Visibility.Collapsed)
-                        {
-                            if (Parent is PhraseListView parent && parent.Parent is Grid g)
-                            {
-                                Point p = Text.TranslatePoint(new Point(0, 0), g);
-                                Kana.Margin = new Thickness(p.X, p.Y + Text.ActualHeight, 0, 0);
-                                Kana.Visibility = Visibility.Visible;
-                            }
-                        }
-                        else
-                        {
-                            Kana.Visibility = Visibility.Collapsed;
-                        }
-                    }
-                };
-                grid.Children.Add(Presets);
-                grid.Children.Add(Text);
-            }
-        }
     }
 }

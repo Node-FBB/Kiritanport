@@ -8,7 +8,7 @@ namespace VoicevoxAPI
 {
     public class AudioQuery
     {
-        public AccentPhrase[] accent_phrases { set; get; } = Array.Empty<AccentPhrase>();
+        public TAccentPhrase[] accent_phrases { set; get; } = Array.Empty<TAccentPhrase>();
         public double speedScale { set; get; } = 1.0;
         public double pitchScale { set; get; } = 0.0;
         public double intonationScale { set; get; } = 1.0;
@@ -37,7 +37,7 @@ namespace VoicevoxAPI
                 }
                 string ret = "";
 
-                foreach (AccentPhrase phrase in accent_phrases)
+                foreach (TAccentPhrase phrase in accent_phrases)
                 {
                     if (phrase.moras is null)
                     {
@@ -76,14 +76,14 @@ namespace VoicevoxAPI
     }
 
 
-    public class AccentPhrase
+    public class TAccentPhrase
     {
-        public Mora[] moras { set; get; } = Array.Empty<Mora>();
+        public TMora[] moras { set; get; } = Array.Empty<TMora>();
         public int accent { set; get; } = 0;
-        public Mora? pause_mora { set; get; }
+        public TMora? pause_mora { set; get; }
     }
 
-    public class Mora
+    public class TMora
     {
         public string text { set; get; } = "";
         public string? consonant { set; get; }
@@ -93,15 +93,15 @@ namespace VoicevoxAPI
         public double pitch { set; get; } = 0.0;
     }
 
-    public class Speaker
+    public class TSpeaker
     {
         public string? name { set; get; }
         public string? speaker_uuid { set; get; }
-        public Style[]? styles { set; get; }
+        public TStyle[]? styles { set; get; }
         public string? version { set; get; }
     }
 
-    public class Style
+    public class TStyle
     {
         public string? name { set; get; }
         public int? id { set; get; }

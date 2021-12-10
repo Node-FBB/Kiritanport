@@ -159,12 +159,20 @@ namespace Kiritanport
             {
                 process.StandardInput.WriteLine("param<" + text);
             }
+            else if(api is string name)
+            {
+                apis[name]?.StandardInput.WriteLine("param<" + text);
+            }
         }
         public static void Speech(object? api, string text)
         {
             if (api is Process process)
             {
                 process.StandardInput.WriteLine("speech<" + text);
+            }
+            else if (api is string name)
+            {
+                apis[name]?.StandardInput.WriteLine("speech<" + text);
             }
         }
         public static void Dictionary(object? api, string text)
@@ -173,12 +181,20 @@ namespace Kiritanport
             {
                 process.StandardInput.WriteLine("dictionary<" + text);
             }
+            else if (api is string name)
+            {
+                apis[name]?.StandardInput.WriteLine("dictionary<" + text);
+            }
         }
         public static void DictionaryKansai(object? api, string text)
         {
             if (api is Process process)
             {
                 process.StandardInput.WriteLine("dictionary_kansai<" + text);
+            }
+            else if (api is string name)
+            {
+                apis[name]?.StandardInput.WriteLine("dictionary_kansai<" + text);
             }
         }
         public static void Kana(object? api, string text)
@@ -187,6 +203,15 @@ namespace Kiritanport
             {
                 process.StandardInput.WriteLine("kana<" + text);
             }
+            else if (api is string name)
+            {
+                apis[name]?.StandardInput.WriteLine("kana<" + text);
+            }
+        }
+
+        public static void Cancel()
+        {
+            apis["voicevox"]?.StandardInput.WriteLine("cancel");
         }
     }
 }

@@ -6,25 +6,25 @@ using System.Threading.Tasks;
 
 namespace Kiritanport.Voiceroid
 {
-    internal struct Style
+    public struct Style
     {
         public string Name;
         public float Value;
     }
 
-    internal enum TDialect
+    public enum TDialect
     {
         Standard,
         Kansai
     }
 
-    internal enum TType
+    public enum TType
     {
         Normal,
         User
     }
 
-    internal class VoicePreset : ICloneable
+    public class VoicePreset : ICloneable
     {
         public string PresetName = "";
         public TType Type;

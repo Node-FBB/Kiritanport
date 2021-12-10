@@ -7,10 +7,10 @@
         mc:Ignorable="d" Height="450" Width="800" Loaded="Window_Loaded" Title="" Closing="Window_Closing">
     <Grid x:Name="G_Root">
         <Label Content="Phrase List" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
-        <local:PhraseListView x:Name="PL_PhraseList" d:ItemsSource="{d:SampleData ItemCount=5}" Width="550" Height="210" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,25,0,0" Loaded="CustomListBox_Loaded"/>
-        <Button Content="Play" HorizontalAlignment="Left" Margin="465,240,0,0" VerticalAlignment="Top" Click="Button_Click" Width="30" Focusable="False" Height="20"/>
-        <Button x:Name="BT_Stop" Content="Stop" HorizontalAlignment="Left" Margin="495,240,0,0" VerticalAlignment="Top" Width="30" Height="20"/>
-        <Button Content="Save" HorizontalAlignment="Left" Margin="535,240,0,0" VerticalAlignment="Top" Width="30" Height="20"/>
+        <local:PhraseListView x:Name="PL_PhraseList" d:ItemsSource="{d:SampleData ItemCount=5}" Width="550" Height="210" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,25,0,0" Loaded="PL_PhraseList_Loaded"/>
+        <Button Content="Play" HorizontalAlignment="Left" Margin="465,240,0,0" VerticalAlignment="Top" Click="BT_Play_Click" Width="30" Focusable="False" Height="20"/>
+        <Button x:Name="BT_Stop" Content="Stop" HorizontalAlignment="Left" Margin="500,240,0,0" VerticalAlignment="Top" Width="30" Height="20" Click="BT_Stop_Click"/>
+        <Button Content="Save" HorizontalAlignment="Left" Margin="535,240,0,0" VerticalAlignment="Top" Width="30" Height="20" Click="BT_Save_Click"/>
         <Label Content="Voice Preset" HorizontalAlignment="Left" Margin="10,260,0,0" VerticalAlignment="Top"/>
         <ComboBox x:Name="CB_PresetList" HorizontalAlignment="Left" Margin="15,285,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="CB_PresetList_SelectionChanged"/>
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,305,0,0" Orientation="Horizontal">
@@ -35,12 +35,12 @@
         </StackPanel>
         <Label Content="Word List" HorizontalAlignment="Right" VerticalAlignment="Top" Width="180" Margin="0,0,20,0"/>
         <ListBox x:Name="LB_WordList" d:ItemsSource="{d:SampleData ItemCount=5}" Margin="0,25,15,0" HorizontalAlignment="Right" VerticalAlignment="Top" Width="180" Height="210"/>
-        <Button Content="Delete" HorizontalAlignment="Right" Margin="0,240,15,0" VerticalAlignment="Top" Width="40" Height="20"/>
+        <Button Content="Delete" HorizontalAlignment="Right" Margin="0,240,15,0" VerticalAlignment="Top" Width="40" Height="20" Click="BT_WordRemove_Click"/>
         <Label Content="Word Edit" HorizontalAlignment="Right" Margin="0,265,20,0" VerticalAlignment="Top" Width="180"/>
         <TextBox x:Name="TB_WordText" HorizontalAlignment="Right" Margin="0,290,15,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="180" Height="20"/>
         <TextBox x:Name="TB_WordKana" HorizontalAlignment="Right" Margin="0,315,15,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="180" Height="20"/>
-        <Button Content="Play" HorizontalAlignment="Right" Margin="0,365,55,0" VerticalAlignment="Top" Width="30" Height="20" Click="Button_Click_Word_Play"/>
-        <Button Content="Save" HorizontalAlignment="Right" Margin="0,365,15,0" VerticalAlignment="Top" Width="30" Height="20" Click="Button_Click_Word_Save"/>
+        <Button Content="Play" HorizontalAlignment="Right" Margin="0,365,55,0" VerticalAlignment="Top" Width="30" Height="20" Click="BT_WordPlay_Click"/>
+        <Button Content="Save" HorizontalAlignment="Right" Margin="0,365,15,0" VerticalAlignment="Top" Width="30" Height="20" Click="BT_WordSave_Click"/>
         <ComboBox x:Name="CB_WordClass" HorizontalAlignment="Right" Margin="0,340,15,0" VerticalAlignment="Top" Width="180"/>
         <StatusBar VerticalAlignment="Bottom" MouseLeftButtonDown="StatusBar_MouseLeftButtonDown">
             <TextBlock x:Name="TB_Log" TextWrapping="Wrap"/>
@@ -48,6 +48,10 @@
         <ComboBox x:Name="CB_AccentProviderList" HorizontalAlignment="Left" Margin="15,360,0,0" VerticalAlignment="Top" Width="120" Loaded="CB_AccentProviderList_Loaded"/>
         <Label Content="Accent Provider" HorizontalAlignment="Left" Margin="10,335,0,0" VerticalAlignment="Top"/>
         <CheckBox Content="Accent Lock" HorizontalAlignment="Left" Margin="15,240,0,0" VerticalAlignment="Top" Height="20" VerticalContentAlignment="Center" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked"/>
+        <Button Content="-" HorizontalAlignment="Left" Margin="530,200,0,0" VerticalAlignment="Top" Width="25" Height="25" Click="BT_PhraseRemove_Click" Focusable="False"/>
+        <Button Content="+" HorizontalAlignment="Left" Margin="500,200,0,0" VerticalAlignment="Top" Width="25" Height="25" Click="BT_PhraseAdd_Click" Focusable="False"/>
+        <Button Content="Edit" HorizontalAlignment="Left" Margin="440,200,0,0" VerticalAlignment="Top" Width="50" Height="25" Click="BT_PhraseEdit_Click" Focusable="False"/>
+        <CheckBox x:Name="CB_Cache" Content="Cache" HorizontalAlignment="Left" Margin="400,240,0,0" VerticalAlignment="Top" Height="20" VerticalContentAlignment="Center"/>
 
     </Grid>
 </Window>
