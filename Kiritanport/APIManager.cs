@@ -25,8 +25,9 @@ namespace Kiritanport
         private static readonly Dictionary<string, Process> apis = new();
         public static bool IsInit { get; private set; } = false;
 
-        public static Process? VoiceroidAPI => IsInit ? apis["voiceroid"] : null;
-        public static Process? VoicevoxAPI => IsInit ? apis["voicevox"] : null;
+        public static Process? VoiceroidAPI => IsInit ? apis["VR"] : null;
+        public static Process? VoicevoxAPI => IsInit ? apis["VV"] : null;
+        public static Process? AssistantSeikaAPI => IsInit ? apis["AS"] : null;
         public static string Log { get; private set; } = "";
 
         public static int RunningAPIsCount
@@ -47,6 +48,25 @@ namespace Kiritanport
 
         public static int APIsCount => apis.Count;
 
+        public static string? GetKey(object? api)
+        {
+            if (api is Process process)
+            {
+                if (apis.ContainsValue(process))
+                {
+                    return apis.First(x => x.Value == process).Key;
+                }
+            }
+            if (api is string key)
+            {
+                if (apis.ContainsKey(key))
+                {
+                    return key;
+                }
+            }
+            return null;
+        }
+
         public static void Init()
         {
             if (IsInit)
@@ -55,16 +75,17 @@ namespace Kiritanport
                 Task.Delay(100);
             }
 
-            apis["voiceroid"] = new Process();
-            apis["voicevox"] = new Process();
+            apis["VR"] = new Process();
+            apis["VV"] = new Process();
+            apis["AS"] = new Process();
 
             if (File.Exists(@".\APIs\VOICEROID2\VoiceroidAPI.exe"))
             {
-                apis["voiceroid"].StartInfo.FileName = @".\APIs\VOICEROID2\VoiceroidAPI.exe";
+                apis["VR"].StartInfo.FileName = @".\APIs\VOICEROID2\VoiceroidAPI.exe";
             }
             else
             {
-                apis["voiceroid"].StartInfo.FileName = @"..\..\..\..\VoiceroidAPI\bin\Debug\VoiceroidAPI.exe";
+                apis["VR"].StartInfo.FileName = @"..\..\..\..\VoiceroidAPI\bin\Debug\VoiceroidAPI.exe";
             }
 
 
@@ -77,7 +98,7 @@ namespace Kiritanport
 
                     if (Directory.Exists(path))
                     {
-                        apis["voiceroid"].StartInfo.Arguments = $"\"{path}\"";
+                        apis["VR"].StartInfo.Arguments = $"\"{path}\"";
                     }
                 }
             }
@@ -85,12 +106,15 @@ namespace Kiritanport
 
             if (File.Exists(@".\APIs\VOICEVOX\VoicevoxAPI.exe"))
             {
-                apis["voicevox"].StartInfo.FileName = @".\APIs\VOICEVOX\VoicevoxAPI.exe";
+                apis["VV"].StartInfo.FileName = @".\APIs\VOICEVOX\VoicevoxAPI.exe";
             }
             else
             {
-                apis["voicevox"].StartInfo.FileName = @"..\..\..\..\VoicevoxAPI\bin\Debug\net6.0\VoicevoxAPI.exe";
+                apis["VV"].StartInfo.FileName = @"..\..\..\..\VoicevoxAPI\bin\Debug\net6.0\VoicevoxAPI.exe";
             }
+
+
+            apis["AS"].StartInfo.FileName = @"..\..\..\..\AssistantSeikaAPI\bin\Debug\AssistantSeikaAPI.exe";
 
 
             SynchronizationContext? syncContext = SynchronizationContext.Current;
@@ -117,21 +141,29 @@ namespace Kiritanport
         {
             if (e.Data != null && sender is Process process)
             {
-#if DEBUG
-                File.AppendAllText(@".\api_log.txt", $"{process.ProcessName}:{e.Data}\n");
-#endif
-                Log += $"{process.ProcessName}:{e.Data}\n";
-
                 MessageReceived?.Invoke(sender, new MyEventArgs() { Data = e.Data });
+
+                if (GetKey(sender) is string key)
+                {
+#if DEBUG
+                    File.AppendAllText(@".\api_log.txt", $"{key}:{e.Data}\n");
+#endif
+                    Log += $"{key}:{e.Data}\n";
+                }
+
+                if (process.HasExited)
+                {
+                    return;
+                }
 
                 if (e.Data.StartsWith("wave>"))
                 {
                     string name = e.Data["wave>".Length..];
 
                     MemoryMappedFile mmf = MemoryMappedFile.OpenExisting(name);
-                    MemoryStream stream = new();
-                    mmf.CreateViewStream().CopyTo(stream);
-                    WaveReceived?.Invoke(sender, new MyEventArgs() { Data = stream });
+                    Wave wave = new();
+                    mmf.CreateViewStream().CopyTo(wave);
+                    WaveReceived?.Invoke(sender, new MyEventArgs() { Data = wave });
 
                     mmf.Dispose();
                     process?.StandardInput.WriteLine("clear<" + name);
@@ -159,7 +191,7 @@ namespace Kiritanport
             {
                 process.StandardInput.WriteLine("param<" + text);
             }
-            else if(api is string name)
+            else if (api is string name)
             {
                 apis[name]?.StandardInput.WriteLine("param<" + text);
             }
@@ -170,9 +202,9 @@ namespace Kiritanport
             {
                 process.StandardInput.WriteLine("speech<" + text);
             }
-            else if (api is string name)
+            else if (api is string key)
             {
-                apis[name]?.StandardInput.WriteLine("speech<" + text);
+                apis[key]?.StandardInput.WriteLine("speech<" + text);
             }
         }
         public static void Dictionary(object? api, string text)
@@ -181,9 +213,9 @@ namespace Kiritanport
             {
                 process.StandardInput.WriteLine("dictionary<" + text);
             }
-            else if (api is string name)
+            else if (api is string key)
             {
-                apis[name]?.StandardInput.WriteLine("dictionary<" + text);
+                apis[key]?.StandardInput.WriteLine("dictionary<" + text);
             }
         }
         public static void DictionaryKansai(object? api, string text)
@@ -192,9 +224,9 @@ namespace Kiritanport
             {
                 process.StandardInput.WriteLine("dictionary_kansai<" + text);
             }
-            else if (api is string name)
+            else if (api is string key)
             {
-                apis[name]?.StandardInput.WriteLine("dictionary_kansai<" + text);
+                apis[key]?.StandardInput.WriteLine("dictionary_kansai<" + text);
             }
         }
         public static void Kana(object? api, string text)
@@ -203,15 +235,15 @@ namespace Kiritanport
             {
                 process.StandardInput.WriteLine("kana<" + text);
             }
-            else if (api is string name)
+            else if (api is string key)
             {
-                apis[name]?.StandardInput.WriteLine("kana<" + text);
+                apis[key]?.StandardInput.WriteLine("kana<" + text);
             }
         }
 
         public static void Cancel()
         {
-            apis["voicevox"]?.StandardInput.WriteLine("cancel");
+            apis["VV"]?.StandardInput.WriteLine("cancel");
         }
     }
 }

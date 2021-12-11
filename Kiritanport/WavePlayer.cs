@@ -9,24 +9,23 @@ using System.Threading.Tasks;
 
 namespace Kiritanport
 {
-    public static class WavePlayer
+    internal static class WavePlayer
     {
         private static readonly SoundPlayer soundPlayer = new();
         private static DateTime playtime;
         private static CancellationTokenSource? ctsource;
 
         public static event EventHandler? PlayStopped;
-        public static void Play(Stream stream)
+        public static void Play(Wave wave)
         {
-            stream.Position = 0;
+            wave.Position = 0;
 
             soundPlayer.Stop();
-            soundPlayer.Stream = stream;
+            soundPlayer.Stream = wave;
             soundPlayer.Load();
             soundPlayer.Play();
 
-            WaveInfo info = new(stream);
-            playtime = DateTime.Now + info.Time;
+            playtime = DateTime.Now + wave.PlayTime;
 
             if (ctsource is not null)
             {
@@ -35,9 +34,9 @@ namespace Kiritanport
             ctsource = new CancellationTokenSource();
 
             SynchronizationContext? context = SynchronizationContext.Current;
-            Task t = Task.Factory.StartNew(async () =>
+            Task.Factory.StartNew(async () =>
             {
-                await Task.Delay((int)Math.Ceiling(info.Time.TotalMilliseconds));
+                await Task.Delay((int)Math.Ceiling(wave.PlayTime.TotalMilliseconds));
                 if (ctsource.IsCancellationRequested)
                 {
                     return;
@@ -56,32 +55,6 @@ namespace Kiritanport
         public static bool IsPlaying()
         {
             return playtime > DateTime.Now;
-        }
-
-        public class WaveInfo
-        {
-            public int Size { get; private set; }
-            public int Channel { get; private set; }
-            public int Sampling { get; private set; }
-            public int Depth { get; private set; }
-            public int Length { get; private set; }
-
-            //1tick = 100ns > 1s = 10,000,000tick
-            public TimeSpan Time => new(10_000_000L * Length / (Depth / 8) / Sampling / Channel);
-
-            public WaveInfo(Stream stream)
-            {
-                stream.Position = 0;
-
-                byte[] buffer = new byte[44];
-                stream.Read(buffer, 0, 44);
-
-                Size = BitConverter.ToInt32(buffer, 4) + 8;
-                Channel = BitConverter.ToInt16(buffer, 22);
-                Sampling = BitConverter.ToInt32(buffer, 24);
-                Depth = BitConverter.ToInt16(buffer, 34);
-                Length = BitConverter.ToInt32(buffer, 40);
-            }
         }
     }
 }

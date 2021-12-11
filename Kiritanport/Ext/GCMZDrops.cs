@@ -110,10 +110,12 @@ namespace Kiritanport.Ext
             var utf8_bytes = Encoding.Convert(Encoding.Unicode, Encoding.UTF8, uni_bytes);
             return utf8_bytes;
         }
-
-        public static string? GetProjectPath()
+        public static string? ProjectPath
         {
-            return Init()?.ProjectPath;
+            get
+            {
+                return Init()?.ProjectPath;
+            }
         }
         public static bool SendFiles(List<string> files, double time_ms, int layer)
         {

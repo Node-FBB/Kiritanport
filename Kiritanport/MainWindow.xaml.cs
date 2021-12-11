@@ -96,7 +96,7 @@ namespace Kiritanport
                 throw new("invalid message received.");
             }
 
-            TB_Log.Text = $"{process.ProcessName} : [ {mes} ]";
+            TB_Log.Text = $"{APIManager.GetKey(sender)} : [ {mes} ]";
 
             if (mes.StartsWith("voice>"))
             {
@@ -219,6 +219,51 @@ namespace Kiritanport
                 IsEnabled = false;
                 BT_Stop.IsEnabled = true;
             };
+            PL_PhraseList.CheckStateChanged += (sender, e) =>
+            {
+                bool on = false;
+                bool off = false;
+
+                foreach (SubControls.PhraseView phrase in PL_PhraseList.Items)
+                {
+                    if (phrase.Check.IsChecked == true && on == false)
+                    {
+                        on = true;
+                    }
+                    if (phrase.Check.IsChecked == false && off == false)
+                    {
+                        off = true;
+                    }
+                }
+                if (on && off)
+                {
+                    CB_All.IsChecked = null;
+                }
+                else if (on)
+                {
+                    CB_All.IsChecked = true;
+                }
+                else
+                {
+                    CB_All.IsChecked = false;
+                }
+            };
+
+            CB_All.Checked += (sender, e) =>
+            {
+                foreach (SubControls.PhraseView phrase in PL_PhraseList.Items)
+                {
+                    phrase.Check.IsChecked = true;
+                }
+            };
+            CB_All.Unchecked += (sender, e) =>
+            {
+                foreach (SubControls.PhraseView phrase in PL_PhraseList.Items)
+                {
+                    phrase.Check.IsChecked = false;
+                }
+            };
+
             TB_Preset_Name.TextChanged += (_, _) =>
             {
                 if (CB_PresetList.SelectedItem == null)
@@ -306,7 +351,8 @@ namespace Kiritanport
             if (File.Exists(PathConfigre))
             {
                 XmlSerializer serializer = new(typeof(Configure));
-                if (serializer.Deserialize(new StreamReader(PathConfigre)) is Configure c)
+                using StreamReader reader = new(PathConfigre);
+                if (serializer.Deserialize(reader) is Configure c)
                 {
                     configure = c;
 
@@ -409,7 +455,8 @@ namespace Kiritanport
             if (IsInit)
             {
                 XmlSerializer serializer = new(typeof(Configure));
-                serializer.Serialize(new StreamWriter(PathConfigre), configure);
+                using StreamWriter writer = new(PathConfigre);
+                serializer.Serialize(writer, configure);
 
                 wdic_standard?.Save();
                 pdic_standard?.Save();
@@ -445,7 +492,148 @@ namespace Kiritanport
         }
         private void BT_Save_Click(object sender, RoutedEventArgs e)
         {
+            List<Wave> waves = new();
+            VoicePreset? prev = null;
+            string text = "";
 
+            //処理が強引すぎるで後で直す
+            foreach (SubControls.PhraseView curr in PL_PhraseList.Items)
+            {
+                if (curr.Check.IsChecked != true)
+                {
+                    continue;
+                }
+
+                if (curr.Preset is null || curr.Wave is null)
+                {
+                    MessageBox.Show("保存の前に再生してください");
+                    break;
+                }
+
+                if (prev == curr.Preset || prev is null)
+                {
+                    text += curr.Text.Text;
+
+                    Wave tmp = new(curr.Wave);
+
+                    int silence = 150;
+                    if ("。！？♪".Contains(curr.Text.Text[^1]))
+                    {
+                        silence = 800;
+                    }
+                    else if ("、".Contains(curr.Text.Text[^1]))
+                    {
+                        silence = 370;
+                    }
+
+                    tmp.CreateSilence(silence / 1000.0);
+
+                    waves.Add(tmp);
+
+                    prev = curr.Preset;
+                }
+                else
+                {
+                    Wave? output = null;
+
+                    foreach (Wave wave in waves)
+                    {
+                        if (output is null)
+                        {
+                            output = wave;
+                        }
+                        else
+                        {
+                            output.Append(wave);
+                        }
+                    }
+
+
+                    if (output is null)
+                    {
+                        continue;
+                    }
+
+                    if (Ext.GCMZDrops.ProjectPath is string proj_path && Directory.GetParent(proj_path) is DirectoryInfo proj_dir)
+                    {
+                        string output_path = $@"{proj_dir.FullName}\{DateTime.Now.Ticks}";
+                        File.WriteAllText(output_path + ".txt", text, Encoding.GetEncoding("Shift_JIS"));
+
+                        output.Save(output_path + ".wav");
+
+                        List<string> files = new()
+                        {
+                            output_path + ".wav",
+                            output_path + ".txt",
+                        };
+
+                        Ext.GCMZDrops.SendFiles(files, output.PlayTime.TotalMilliseconds, 1);
+                    }
+
+                    waves = new List<Wave>();
+                    text = "";
+
+                    text += curr.Text.Text;
+
+                    Wave tmp = new(curr.Wave);
+
+                    int silence = 150;
+                    if ("。！？♪".Contains(curr.Text.Text[^1]))
+                    {
+                        silence = 800;
+                    }
+                    else if ("、".Contains(curr.Text.Text[^1]))
+                    {
+                        silence = 370;
+                    }
+
+                    tmp.CreateSilence(silence / 1000.0);
+
+                    waves.Add(tmp);
+
+                    prev = curr.Preset;
+                }
+            }
+
+            if (waves.Count > 0)
+            {
+                Wave? output = null;
+
+                foreach (Wave wave in waves)
+                {
+                    if (output is null)
+                    {
+                        output = wave;
+                    }
+                    else
+                    {
+                        output.Append(wave);
+                    }
+                }
+
+                waves = new List<Wave>();
+
+                if (output is null)
+                {
+                    return;
+                }
+
+                if (Ext.GCMZDrops.ProjectPath is string proj_path && Directory.GetParent(proj_path) is DirectoryInfo proj_dir)
+                {
+                    string output_path = $@"{proj_dir.FullName}\{DateTime.Now.Ticks}";
+                    File.WriteAllText(output_path + ".txt", text, Encoding.GetEncoding("Shift_JIS"));
+
+                    output.Save(output_path + ".wav");
+
+                    List<string> files = new()
+                    {
+                        output_path + ".wav",
+                        output_path + ".txt",
+                    };
+
+                    Ext.GCMZDrops.SendFiles(files, output.PlayTime.TotalMilliseconds, 1);
+                }
+            }
         }
         private void CB_AccentProviderList_Loaded(object sender, RoutedEventArgs e)
         {

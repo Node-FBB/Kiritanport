@@ -42,6 +42,8 @@ namespace Kiritanport
 
         private event MyEventHandler? HidePhraseEditViewSignal;
 
+        public event EventHandler? CheckStateChanged;
+
         public TAccentProvider AccentProvider { set; get; } = TAccentProvider.Default;
 
         public bool AccentLock = false;
@@ -97,6 +99,19 @@ namespace Kiritanport
             }
         }
 
+        public (string? Text, Wave? Wave) SelectedData
+        {
+            get
+            {
+                if (SelectedItem is PhraseView sel)
+                {
+                    return (sel.Text.Text, sel.Wave);
+                }
+                return (null, null);
+            }
+        }
+
+        bool wave_only = false;
         private void SpeechPhrase(PhraseView item)
         {
             if (item.Text.Text.Length == 0)
@@ -136,7 +151,15 @@ namespace Kiritanport
                     kana = selected;
                 }
 
-                if (kana != "<S>")
+                wave_only = false;
+
+                if (citem.DataContext == APIManager.AssistantSeikaAPI)
+                {
+                    wave_only = true;
+                    APIManager.Speech(citem.DataContext, text);
+                    APIManager.KanaReceived -= MainWindow_KanaReceived;
+                }
+                else if (kana != "<S>")
                 {
                     APIManager.Speech(citem.DataContext, kana);
                 }
@@ -200,6 +223,15 @@ namespace Kiritanport
                     {
                         break;
                     }
+
+                    bool check = false;
+                    context?.Send(_ => check = item.Check.IsChecked == true, null);
+
+                    if (!check)
+                    {
+                        continue;
+                    }
+
                     int silence;
                     string text = "";
 
@@ -278,28 +310,41 @@ namespace Kiritanport
             APIManager.WaveReceived -= APIManager_WaveReceived;
             SynchronizationContext? context = SynchronizationContext.Current;
 
-            if (e.Data is MemoryStream stream)
+            if (e.Data is Wave wave)
             {
                 if (received_item is not null)
                 {
-                    received_item.Wave = stream;
+                    received_item.Wave = wave;
                 }
 
-                WavePlayer.Play(stream);
-
-                Task.Factory.StartNew(async () =>
+                if (wave_only)
                 {
-                    while (WavePlayer.IsPlaying())
-                    {
-                        await Task.Delay(10);
-                    }
+                    wave_only = false;
                     processing = false;
                     if (notice)
                     {
-                        context?.Post(_ => SpeechEnd?.Invoke(this, new MyEventArgs()), null);
+                        SpeechEnd?.Invoke(this, new MyEventArgs());
                         notice = false;
                     }
-                });
+                }
+                else
+                {
+                    WavePlayer.Play(wave);
+
+                    Task.Factory.StartNew(async () =>
+                    {
+                        while (WavePlayer.IsPlaying())
+                        {
+                            await Task.Delay(10);
+                        }
+                        processing = false;
+                        if (notice)
+                        {
+                            context?.Post(_ => SpeechEnd?.Invoke(this, new MyEventArgs()), null);
+                            notice = false;
+                        }
+                    });
+                }
             }
             received_item = null;
         }
@@ -360,6 +405,7 @@ namespace Kiritanport
             }
             Items.Add(dst);
             ScrollIntoView(dst);
+            CheckStateChanged?.Invoke(this, new EventArgs());
         }
         public void RemovePhraseLine(bool focus)
         {
@@ -375,6 +421,7 @@ namespace Kiritanport
                 }
                 Items.Remove(Items[SelectedIndex + 1]);
             }
+            CheckStateChanged?.Invoke(this, new EventArgs());
         }
         public void InsertPhraseLine(bool focus)
         {
@@ -385,6 +432,7 @@ namespace Kiritanport
             }
             Items.Insert(SelectedIndex + 1, dst);
             ScrollIntoView(dst);
+            CheckStateChanged?.Invoke(this, new EventArgs());
         }
 
         public void EditPhraseLine()
@@ -425,6 +473,9 @@ namespace Kiritanport
                 }
             };
 
+            phrase.Check.Checked += Check_Changed;
+            phrase.Check.Unchecked += Check_Changed;
+
             HidePhraseEditViewSignal += (sender, e) =>
             {
                 phrase.Kana.Visibility = Visibility.Collapsed;
@@ -451,5 +502,9 @@ namespace Kiritanport
             return phrase;
         }
 
+        private void Check_Changed(object sender, RoutedEventArgs e)
+        {
+            CheckStateChanged?.Invoke(sender, e);
+        }
     }
 }
