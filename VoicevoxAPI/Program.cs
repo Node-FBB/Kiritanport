@@ -4,7 +4,7 @@ using System.IO.MemoryMappedFiles;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using VoicevoxAPI;
+using Kiritanport.Voicevox;
 
 Console.WriteLine("version>0.0.0");
 Console.WriteLine("Initializing ...");

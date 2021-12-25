@@ -3,16 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.MemoryMappedFiles;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Xml.Serialization;
 
 namespace Kiritanport
@@ -28,7 +26,8 @@ namespace Kiritanport
     /// 
     public partial class MainWindow : Window
     {
-        private readonly bool uicheck = false;
+        private readonly bool no_api = false;//APIを起動しないかどうか（UIの挙動確認用）
+        private readonly bool expand_dragmove_area = true;//DragMoveの範囲をウィンドウヘッダーから全ウィンドウ領域に広げるかどうか
         private int api_cnt = 0;
         private bool IsInit { get; set; } = false;
 
@@ -45,6 +44,9 @@ namespace Kiritanport
         private const string PathWordDictionary = @".\test.wdic";
         private const string PathPhraseDictionary = @".\test.pdic";
 
+        private readonly List<(Label Label, VoiceParameterView Param)> StyleControls = new();
+
+
         private new bool IsEnabled
         {
             set
@@ -53,19 +55,19 @@ namespace Kiritanport
                 {
                     foreach (UIElement ui in root.Children)
                     {
-                        if (ui == BT_Stop)
+                        if (ui == BT_Stop || ui == G_Header)
                         {
                             continue;
                         }
 
                         if (!IsVisible)
                         {
-                            if (ui is not Label && ui is not TextBlock && ui is not StatusBar)
+                            if (ui is not Label && ui is not TextBlock && ui is not StatusBar && ui is not Menu)
                             {
                                 ui.IsEnabled = value;
                             }
                         }
-                        else if (ui.IsVisible && ui is not Label && ui is not TextBlock && ui is not StatusBar)
+                        else if (ui.IsVisible && ui is not Label && ui is not TextBlock && ui is not StatusBar && ui is not Menu)
                         {
                             ui.IsEnabled = value;
                         }
@@ -81,10 +83,39 @@ namespace Kiritanport
             IsEnabled = false;
             BT_Stop.IsEnabled = false;
 
-            if (uicheck)
+            ContextMenu menu = new();
+
+
+
+            MenuItem move = new() { Header = "移動(_M)" };
+            move.Click += (sender, e) =>
             {
+                Mouse.OverrideCursor = Cursors.SizeAll;
+            };
+            MenuItem minimize = new() { Header = "最小化(_N)" };
+            minimize.Click += (sender, e) =>
+            {
+                WindowState = WindowState.Minimized;
+            };
+            MenuItem close = new() { Header = "閉じる(_C)", InputGestureText = "Alt+F4" };
+            close.Click += Close_Click;
+
+            menu.Items.Add(move);
+            menu.Items.Add(minimize);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(close);
+            G_Header.ContextMenu = menu;
+
+            if (no_api)
+            {
+                Init();
                 return;
             }
+
+            StyleControls.Add((L_Style0, VP_Style0));
+            StyleControls.Add((L_Style1, VP_Style1));
+            StyleControls.Add((L_Style2, VP_Style2));
+            StyleControls.Add((L_Style3, VP_Style3));
 
             APIManager.MessageReceived += APIManager_MessageReceived;
             APIManager.Init();
@@ -96,29 +127,24 @@ namespace Kiritanport
                 throw new("invalid message received.");
             }
 
-            TB_Log.Text = $"{APIManager.GetKey(sender)} : [ {mes} ]";
+            if (mes.Length > 64)
+            {
+                TB_Log.Text = $"{APIManager.GetKey(sender)} : [ {mes[..64]} ]";
+            }
+            else
+            {
+                TB_Log.Text = $"{APIManager.GetKey(sender)} : [ {mes} ]";
+            }
+
 
             if (mes.StartsWith("voice>"))
             {
-                string voice_name = mes["voice>".Length..].Split(":")[0];
-                string chara_name = mes["voice>".Length..].Split(":")[1];
+                string json_str = mes["voice>".Length..];
 
-                VoicePreset preset = new()
+                if (JsonSerializer.Deserialize<VoicePreset>(json_str) is VoicePreset preset)
                 {
-                    VoiceName = voice_name,
-                    Dialect = voice_name.Contains("west") ? TDialect.Kansai : TDialect.Standard,
-                    Styles = voice_name.Contains("emo") ? new Voiceroid.Style[3] : Array.Empty<Voiceroid.Style>(),
-                    Type = TType.Normal,
-                    Volume = 1,
-                    Speed = 1,
-                    Pitch = 1,
-                    PitchRange = 1,
-                    MiddlePause = 150,
-                    LongPause = 370,
-                    PresetName = chara_name,
-                };
-
-                CB_VoiceList.Items.Add(new ComboBoxItem() { Content = preset, DataContext = process });
+                    CB_VoiceList.Items.Add(new ComboBoxItem() { Content = preset, DataContext = process });
+                }
             }
 
             if (mes == "Ready." || mes == "Exit.")
@@ -136,6 +162,12 @@ namespace Kiritanport
             //設定の読み込みをする
             LoadConfig();
 
+            if (CB_VoiceList.Items.Count == 0)
+            {
+                MessageBox.Show("使用可能なボイスが見つかりませんでした。");
+                return;
+            }
+
             LB_WordList.SelectionChanged += (sender, e) =>
             {
                 if (LB_WordList.SelectedIndex == -1)
@@ -143,6 +175,13 @@ namespace Kiritanport
                     TB_WordText.Text = "";
                     TB_WordKana.Text = "";
                     CB_WordClass.SelectedIndex = -1;
+                }
+            };
+            PL_PhraseList.SelectionChanged += (sender, e) =>
+            {
+                if (PL_PhraseList.PresetIndex is int index)
+                {
+                    CB_PresetList.SelectedIndex = index;
                 }
             };
             PL_PhraseList.TextSelected += (sender, e) =>
@@ -205,116 +244,123 @@ namespace Kiritanport
                 }
             };
 
-            IInputElement? element = null;
+            //IInputElement? element = null;
             PL_PhraseList.SpeechEnd += (sender, e) =>
             {
                 IsEnabled = true;
                 BT_Stop.IsEnabled = false;
-                element?.Focus();
+
+                PL_PhraseList.Focus();
+                //element?.Focus();
             };
             PL_PhraseList.SpeechBegin += (sender, e) =>
             {
-                element = FocusManager.GetFocusedElement(this);
+                //element = FocusManager.GetFocusedElement(this);
 
                 IsEnabled = false;
                 BT_Stop.IsEnabled = true;
             };
             PL_PhraseList.CheckStateChanged += (sender, e) =>
             {
-                bool on = false;
-                bool off = false;
-
-                foreach (SubControls.PhraseView phrase in PL_PhraseList.Items)
-                {
-                    if (phrase.Check.IsChecked == true && on == false)
-                    {
-                        on = true;
-                    }
-                    if (phrase.Check.IsChecked == false && off == false)
-                    {
-                        off = true;
-                    }
-                }
-                if (on && off)
-                {
-                    CB_All.IsChecked = null;
-                }
-                else if (on)
-                {
-                    CB_All.IsChecked = true;
-                }
-                else
-                {
-                    CB_All.IsChecked = false;
-                }
+                CB_All.IsChecked = PL_PhraseList.IsAllChecked;
             };
 
             CB_All.Checked += (sender, e) =>
             {
-                foreach (SubControls.PhraseView phrase in PL_PhraseList.Items)
-                {
-                    phrase.Check.IsChecked = true;
-                }
+                PL_PhraseList.IsAllChecked = true;
             };
             CB_All.Unchecked += (sender, e) =>
             {
-                foreach (SubControls.PhraseView phrase in PL_PhraseList.Items)
-                {
-                    phrase.Check.IsChecked = false;
-                }
+                PL_PhraseList.IsAllChecked = false;
             };
+            TB_Preset_Name.TextChanged += TB_Preset_Name_TextChanged;
 
-            TB_Preset_Name.TextChanged += (_, _) =>
-            {
-                if (CB_PresetList.SelectedItem == null)
-                {
-                    return;
-                }
-                PL_PhraseList.RenamePreset(CB_PresetList.SelectedIndex);
-
-                if (CB_PresetList.SelectedItem is ComboBoxItem citem && citem.Content is VoicePreset preset)
-                {
-                    preset.PresetName = TB_Preset_Name.Text;
-                    citem.Content = null;
-                    citem.Content = preset;
-
-                    CB_PresetList.SelectionChanged -= CB_PresetList_SelectionChanged;
-                    var index = CB_PresetList.SelectedIndex;
-                    CB_PresetList.SelectedIndex = -1;
-                    CB_PresetList.SelectedIndex = index;
-                    CB_PresetList.SelectionChanged += CB_PresetList_SelectionChanged;
-                }
-
-            };
             CB_PresetList.SelectionChanged += (_, _) =>
             {
-                if (CB_PresetList.SelectedItem is ComboBoxItem item1 && item1.Content is VoicePreset preset1)
+                if (CB_PresetList.SelectedItem is ComboBoxItem item_dst && item_dst.Content is VoicePreset preset_dst)
                 {
-                    VP_Vol.Value = preset1.Volume;
-                    VP_Spd.Value = preset1.Speed;
-                    VP_Pit.Value = preset1.Pitch;
-                    VP_EMPH.Value = preset1.PitchRange;
+                    VP_Vol.Value = preset_dst.Volume;
+                    VP_Spd.Value = preset_dst.Speed;
+                    VP_Pit.Value = preset_dst.Pitch;
+                    VP_EMPH.Value = preset_dst.PitchRange;
 
-                    foreach (ComboBoxItem item2 in CB_VoiceList.Items)
+                    foreach ((Label Label, VoiceParameterView Param) control in StyleControls)
                     {
-                        if (item2.Content is VoicePreset preset2 && preset2.VoiceName == preset1.VoiceName)
+                        control.Label.Content = "";
+                        control.Param.Value = 0;
+                        control.Param.IsEnabled = false;
+                        control.Param.Visibility = Visibility.Hidden;
+                    }
+
+                    if (preset_dst.Styles.Length <= StyleControls.Count)
+                    {
+                        for (int i = 0; i < preset_dst.Styles.Length; i++)
                         {
-                            CB_VoiceList.SelectedItem = item2;
+                            string label = preset_dst.Styles[i].Name;
+                            // パワフル＝怒り　A
+                            // セクシー＝悲しみ S
+                            // あたふた＝喜び J
+                            if (preset_dst.VoiceName == "itako_emo_44")
+                            {
+                                switch (label)
+                                {
+                                    case "J":
+                                        label = "あたふた";
+                                        break;
+                                    case "A":
+                                        label = "パワフル";
+                                        break;
+                                    case "S":
+                                        label = "セクシー";
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                switch (label)
+                                {
+                                    case "J":
+                                        label = "喜び";
+                                        break;
+                                    case "A":
+                                        label = "怒り";
+                                        break;
+                                    case "S":
+                                        label = "悲しみ";
+                                        break;
+                                }
+                            }
+
+
+                            StyleControls[i].Label.Content = label;
+                            StyleControls[i].Param.Value = preset_dst.Styles[i].Value;
+                            StyleControls[i].Param.IsEnabled = true;
+                            StyleControls[i].Param.Visibility = Visibility.Visible;
+                        }
+                    }
+
+                    if (preset_dst.Num is int num)
+                    {
+                        VP_Num.Value = num;
+                    }
+                    else
+                    {
+                        VP_Num.Value = 1;
+                    }
+
+                    foreach (ComboBoxItem item_src in CB_VoiceList.Items)
+                    {
+                        if (item_src.Content is VoicePreset preset_src && preset_src.VoiceName == preset_dst.VoiceName)
+                        {
+                            CB_VoiceList.SelectionChanged -= CB_VoiceList_SelectionChanged;
+                            CB_VoiceList.SelectedItem = item_src;
+                            CB_VoiceList.SelectionChanged += CB_VoiceList_SelectionChanged;
                         }
                     }
                 }
             };
-            CB_VoiceList.SelectionChanged += (_, _) =>
-            {
-                if (CB_PresetList.SelectedItem is ComboBoxItem item_dst && item_dst.Content is VoicePreset preset_dst)
-                {
-                    if (CB_VoiceList.SelectedItem is ComboBoxItem item_src && item_src.Content is VoicePreset preset_src)
-                    {
-                        preset_dst.VoiceName = preset_src.VoiceName;
-                        item_dst.DataContext = item_src.DataContext;
-                    }
-                }
-            };
+            CB_VoiceList.SelectionChanged += CB_VoiceList_SelectionChanged;
+
             VP_Vol.ValueChanged += (_, _) =>
             {
                 if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
@@ -343,9 +389,127 @@ namespace Kiritanport
                     preset.PitchRange = (float)VP_EMPH.Value;
                 }
             };
+
+            for (int i = 0; i < StyleControls.Count; i++)
+            {
+                int id = i;
+                StyleControls[id].Param.ValueChanged += (sender, e) =>
+                {
+                    if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
+                    {
+                        if (preset.Styles.Length > id)
+                        {
+                            preset.Styles[id].Value = (float)StyleControls[id].Param.Value;
+                        }
+                    }
+                };
+            }
+            VP_Num.ValueChanged += (sender, e) =>
+            {
+                if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
+                {
+                    preset.Num = (int)VP_Num.Value;
+                }
+            };
+
+            CB_PresetList.SelectedIndex = 0;
+            PL_PhraseList.SelectedIndex = 0;
+            PL_PhraseList.PresetIndex = 0;
+
             IsEnabled = true;
             IsInit = true;
         }
+
+        private void CB_VoiceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CB_PresetList.SelectedItem is ComboBoxItem item_dst && item_dst.Content is VoicePreset preset_dst)
+            {
+                if (CB_VoiceList.SelectedItem is ComboBoxItem item_src && item_src.Content is VoicePreset preset_src)
+                {
+                    preset_dst.VoiceName = preset_src.VoiceName;
+                    preset_dst.Styles = preset_src.Styles;
+
+                    foreach ((Label Label, VoiceParameterView Param) control in StyleControls)
+                    {
+                        control.Label.Content = "";
+                        control.Param.Value = 0;
+                        control.Param.IsEnabled = false;
+                        control.Param.Visibility = Visibility.Hidden;
+                    }
+
+                    if (preset_dst.Styles.Length <= StyleControls.Count)
+                    {
+                        for (int i = 0; i < preset_dst.Styles.Length; i++)
+                        {
+                            string label = preset_dst.Styles[i].Name;
+                            // パワフル＝怒り　A
+                            // セクシー＝悲しみ S
+                            // あたふた＝喜び J
+                            if (preset_dst.VoiceName == "itako_emo_44")
+                            {
+                                switch (label)
+                                {
+                                    case "J":
+                                        label = "あたふた";
+                                        break;
+                                    case "A":
+                                        label = "パワフル";
+                                        break;
+                                    case "S":
+                                        label = "セクシー";
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                switch (label)
+                                {
+                                    case "J":
+                                        label = "喜び";
+                                        break;
+                                    case "A":
+                                        label = "怒り";
+                                        break;
+                                    case "S":
+                                        label = "悲しみ";
+                                        break;
+                                }
+                            }
+
+                            StyleControls[i].Label.Content = label;
+                            StyleControls[i].Param.Value = preset_dst.Styles[i].Value;
+                            StyleControls[i].Param.IsEnabled = true;
+                            StyleControls[i].Param.Visibility = Visibility.Visible;
+                        }
+                    }
+
+                    item_dst.DataContext = item_src.DataContext;
+                }
+            }
+        }
+
+        private void TB_Preset_Name_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (CB_PresetList.SelectedItem == null)
+            {
+                return;
+            }
+            PL_PhraseList.RenamePreset(CB_PresetList.SelectedIndex);
+
+            if (CB_PresetList.SelectedItem is ComboBoxItem citem && citem.Content is VoicePreset preset)
+            {
+                preset.PresetName = TB_Preset_Name.Text;
+                citem.Content = null;
+                citem.Content = preset;
+
+                CB_PresetList.SelectionChanged -= CB_PresetList_SelectionChanged;
+                var index = CB_PresetList.SelectedIndex;
+                CB_PresetList.SelectedIndex = -1;
+                CB_PresetList.SelectedIndex = index;
+                CB_PresetList.SelectionChanged += CB_PresetList_SelectionChanged;
+            }
+        }
+
         private void LoadConfig()
         {
             if (File.Exists(PathConfigre))
@@ -484,154 +648,37 @@ namespace Kiritanport
         }
         private void BT_Play_Click(object sender, RoutedEventArgs e)
         {
-            PL_PhraseList.SpeechPhraseList(CB_Cache.IsChecked == true);
+            PL_PhraseList.SpeechPhraseList(CB_Cache.IsChecked == true, true);
         }
         private void BT_Stop_Click(object sender, RoutedEventArgs e)
         {
             PL_PhraseList.SpeechCancel();
         }
-        private void BT_Save_Click(object sender, RoutedEventArgs e)
+        private void BT_Output_Click(object sender, RoutedEventArgs e)
         {
-            List<Wave> waves = new();
-            VoicePreset? prev = null;
-            string text = "";
+            int cnt;
 
-            //処理が強引すぎるで後で直す
-            foreach (SubControls.PhraseView curr in PL_PhraseList.Items)
+            if (CB_Cache.IsChecked == true)
             {
-                if (curr.Check.IsChecked != true)
-                {
-                    continue;
-                }
-
-                if (curr.Preset is null || curr.Wave is null)
-                {
-                    MessageBox.Show("保存の前に再生してください");
-                    break;
-                }
-
-                if (prev == curr.Preset || prev is null)
-                {
-                    text += curr.Text.Text;
-
-                    Wave tmp = new(curr.Wave);
-
-                    int silence = 150;
-                    if ("。！？♪".Contains(curr.Text.Text[^1]))
-                    {
-                        silence = 800;
-                    }
-                    else if ("、".Contains(curr.Text.Text[^1]))
-                    {
-                        silence = 370;
-                    }
-
-                    tmp.CreateSilence(silence / 1000.0);
-
-                    waves.Add(tmp);
-
-                    prev = curr.Preset;
-                }
-                else
-                {
-                    Wave? output = null;
-
-                    foreach (Wave wave in waves)
-                    {
-                        if (output is null)
-                        {
-                            output = wave;
-                        }
-                        else
-                        {
-                            output.Append(wave);
-                        }
-                    }
-
-
-                    if (output is null)
-                    {
-                        continue;
-                    }
-
-                    if (Ext.GCMZDrops.ProjectPath is string proj_path && Directory.GetParent(proj_path) is DirectoryInfo proj_dir)
-                    {
-                        string output_path = $@"{proj_dir.FullName}\{DateTime.Now.Ticks}";
-                        File.WriteAllText(output_path + ".txt", text, Encoding.GetEncoding("Shift_JIS"));
-
-                        output.Save(output_path + ".wav");
-
-                        List<string> files = new()
-                        {
-                            output_path + ".wav",
-                            output_path + ".txt",
-                        };
-
-                        Ext.GCMZDrops.SendFiles(files, output.PlayTime.TotalMilliseconds, 1);
-                    }
-
-                    waves = new List<Wave>();
-                    text = "";
-
-                    text += curr.Text.Text;
-
-                    Wave tmp = new(curr.Wave);
-
-                    int silence = 150;
-                    if ("。！？♪".Contains(curr.Text.Text[^1]))
-                    {
-                        silence = 800;
-                    }
-                    else if ("、".Contains(curr.Text.Text[^1]))
-                    {
-                        silence = 370;
-                    }
-
-                    tmp.CreateSilence(silence / 1000.0);
-
-                    waves.Add(tmp);
-
-                    prev = curr.Preset;
-                }
+                cnt = PL_PhraseList.UncachedCheckedPhraseCount;
+            }
+            else
+            {
+                cnt = PL_PhraseList.CheckedPhraseCount;
             }
 
-            if (waves.Count > 0)
+            if (cnt == 0)
             {
-                Wave? output = null;
+                PL_PhraseList.SaveWaves(this, new MyEventArgs());
+            }
+            else
+            {
+                MessageBoxResult result = MessageBox.Show(this, $"{cnt}個のフレーズ音声を合成します。よろしいですか？", "確認", MessageBoxButton.OKCancel);
 
-                foreach (Wave wave in waves)
+                if (result == MessageBoxResult.OK)
                 {
-                    if (output is null)
-                    {
-                        output = wave;
-                    }
-                    else
-                    {
-                        output.Append(wave);
-                    }
-                }
-
-                waves = new List<Wave>();
-
-                if (output is null)
-                {
-                    return;
-                }
-
-                if (Ext.GCMZDrops.ProjectPath is string proj_path && Directory.GetParent(proj_path) is DirectoryInfo proj_dir)
-                {
-                    string output_path = $@"{proj_dir.FullName}\{DateTime.Now.Ticks}";
-                    File.WriteAllText(output_path + ".txt", text, Encoding.GetEncoding("Shift_JIS"));
-
-                    output.Save(output_path + ".wav");
-
-                    List<string> files = new()
-                    {
-                        output_path + ".wav",
-                        output_path + ".txt",
-                    };
-
-                    Ext.GCMZDrops.SendFiles(files, output.PlayTime.TotalMilliseconds, 1);
+                    PL_PhraseList.SpeechEnd += PL_PhraseList.SaveWaves;
+                    PL_PhraseList.SpeechPhraseList(CB_Cache.IsChecked == true, false);
                 }
             }
         }
@@ -669,7 +716,9 @@ namespace Kiritanport
         {
             if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
             {
+                TB_Preset_Name.TextChanged -= TB_Preset_Name_TextChanged;
                 TB_Preset_Name.Text = preset.PresetName;
+                TB_Preset_Name.TextChanged += TB_Preset_Name_TextChanged;
             }
         }
         private void StatusBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -761,6 +810,228 @@ namespace Kiritanport
         {
             PL_PhraseList.EditPhraseLine();
         }
+        private void BT_PhraseSave_Click(object sender, RoutedEventArgs e)
+        {
 
+        }
+
+        bool close_flag = false;
+        bool minimize_flag = false;
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (BT_Close.IsMouseOver)
+            {
+                close_flag = true;
+            }
+            else if (BT_Minimize.IsMouseOver)
+            {
+                minimize_flag = true;
+            }
+            else if (BT_Topmost.IsMouseOver)
+            {
+                if (Topmost)
+                {
+                    Topmost = false;
+                    BT_Topmost.Foreground.Opacity = 0.5;
+                }
+                else
+                {
+                    Topmost = true;
+                    BT_Topmost.Foreground.Opacity = 1.0;
+                }
+            }
+            else if (L_WindowControl.IsMouseOver)
+            {
+                G_Header.ContextMenu.IsOpen = true;
+            }
+            else if (expand_dragmove_area || G_Header.IsMouseOver)
+            {
+                //イベント処理が遅延するとエラーになるのでボタンが押されているか確認
+                if (Mouse.LeftButton == MouseButtonState.Pressed)
+                {
+                    DragMove();
+                }
+            }
+        }
+        private void BT_Close_MouseEnter(object sender, MouseEventArgs e)
+        {
+            BT_Close.Background = Brushes.Red;
+            BT_Close.Foreground = Brushes.White;
+        }
+        private void BT_Close_MouseLeave(object sender, MouseEventArgs e)
+        {
+            BT_Close.Background = Brushes.White;
+            BT_Close.Foreground = Brushes.Black;
+            close_flag = false;
+        }
+        private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (close_flag)
+            {
+                Close();
+            }
+            if (minimize_flag)
+            {
+                WindowState = WindowState.Minimized;
+            }
+        }
+        private void BT_Minimize_MouseEnter(object sender, MouseEventArgs e)
+        {
+            BT_Minimize.Background = new SolidColorBrush(new Color() { A = 255, R = 230, G = 230, B = 230 });
+        }
+        private void BT_Minimize_MouseLeave(object sender, MouseEventArgs e)
+        {
+            BT_Minimize.Background = Brushes.White;
+            minimize_flag = false;
+        }
+        private void Window_Activated(object sender, EventArgs e)
+        {
+            L_WindowControl.Opacity = 1.0;
+        }
+        private void Window_Deactivated(object sender, EventArgs e)
+        {
+            L_WindowControl.Opacity = 0.5;
+            Mouse.OverrideCursor = Cursors.Arrow;
+        }
+        private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (Mouse.OverrideCursor == Cursors.SizeAll)
+            {
+                e.Handled = true;
+                Mouse.OverrideCursor = Cursors.Arrow;
+
+                if (Mouse.LeftButton == MouseButtonState.Pressed)
+                {
+                    DragMove();
+                }
+            }
+        }
+        private void BT_AddPreset_Click(object sender, RoutedEventArgs e)
+        {
+            if (CB_VoiceList.Items[0] is ComboBoxItem item_src)
+            {
+                if (item_src.Content is VoicePreset preset_normal)
+                {
+                    VoicePreset preset = (VoicePreset)preset_normal.Clone();
+
+                    preset.PresetName = $"新規ボイス";
+                    preset.Type = TType.User;
+                    var item_dst = new ComboBoxItem() { Content = preset, DataContext = item_src.DataContext };
+
+                    Binding binding = new()
+                    {
+                        Source = item_dst,
+                        Path = new PropertyPath("DataContext"),
+                        Mode = BindingMode.Default,
+                    };
+                    PL_PhraseList.AddPreset(preset, binding);
+                    CB_PresetList.Items.Add(item_dst);
+
+                    CB_PresetList.SelectedItem = item_dst;
+
+                    if (configure is null)
+                    {
+                        throw new();
+                    }
+                    List<VoicePreset> dst = new(configure.Presets);
+                    dst.Add(preset);
+                    configure.Presets = dst.ToArray();
+                }
+            }
+        }
+        private void BT_RemovePreset_Click(object sender, RoutedEventArgs e)
+        {
+            if (CB_PresetList.Items.Count < 2)
+            {
+                return;
+            }
+
+            if (CB_PresetList.SelectedItem is ComboBoxItem item && item.Content is VoicePreset preset)
+            {
+                if (PL_PhraseList.RemovePreset(preset))
+                {
+                    if (CB_PresetList.SelectedIndex > 0)
+                    {
+                        CB_PresetList.SelectedIndex--;
+                    }
+                    else
+                    {
+                        CB_PresetList.SelectedIndex++;
+                    }
+
+                    CB_PresetList.Items.Remove(item);
+
+                    if (configure is null)
+                    {
+                        throw new();
+                    }
+                    List<VoicePreset> dst = new(configure.Presets);
+                    dst.Remove(preset);
+                    configure.Presets = dst.ToArray();
+                }
+                else
+                {
+                    MessageBox.Show("リストで使用中のボイスプリセットは削除できません");
+                }
+            }
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void BT_UpPreset_Click(object sender, RoutedEventArgs e)
+        {
+            MovePreset(-1);
+        }
+
+        private void BT_DownPreset_Click(object sender, RoutedEventArgs e)
+        {
+            MovePreset(1);
+        }
+
+        private void MovePreset(int move_value)
+        {
+            if (CB_PresetList.SelectedItem is not ComboBoxItem item || item.Content is not VoicePreset preset)
+            {
+                return;
+            }
+
+            int index = CB_PresetList.SelectedIndex + move_value;
+
+            if (index < 0 || index >= CB_PresetList.Items.Count)
+            {
+                return;
+            }
+
+            CB_PresetList.Items.Remove(item);
+            CB_PresetList.Items.Insert(index, item);
+            CB_PresetList.SelectedItem = item;
+
+            PL_PhraseList.MovePreset(preset, index);
+
+            if (configure is null)
+            {
+                throw new();
+            }
+
+            List<VoicePreset> dst = new();
+
+            foreach (ComboBoxItem item_src in CB_PresetList.Items)
+            {
+                dst.Add((VoicePreset)item_src.Content);
+            }
+
+            foreach (VoicePreset src in configure.Presets)
+            {
+                if (!dst.Contains(src))
+                {
+                    dst.Add(src);
+                }
+            }
+
+            configure.Presets = dst.ToArray();
+        }
     }
 }

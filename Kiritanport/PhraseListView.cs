@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -27,8 +29,101 @@ namespace Kiritanport
         Voiceroid,
         Voicevox,
     }
+    internal class Waves
+    {
+        public int PauseShort { set; get; } = 150;
+        public int PauseLong { set; get; } = 370;
+        public int PauseSentence { set; get; } = 800;
+        public string CustomPauseMark { set; get; } = "$";
+
+        public VoicePreset Preset { get; init; }
+        private readonly List<Wave> waves = new();
+        public string Text { get; private set; } = "";
+        public int Count => waves.Count;
+
+        public Waves(VoicePreset preset)
+        {
+            Preset = preset;
+        }
+
+        public void Add(Wave wave, string text)
+        {
+            Text += text;
+
+            Wave tmp = new(wave);
+
+            int silence = 150;
+            if ("。！？♪".Contains(text[^1]))
+            {
+                silence = 800;
+            }
+            else if ("、".Contains(text[^1]))
+            {
+                silence = 370;
+            }
+
+            if (text.Split(CustomPauseMark).Length >= 2)
+            {
+                if (int.TryParse(text.Split(CustomPauseMark).Last(), out int result))
+                {
+                    silence = result;
+
+                    Text = Text[..^(text.Split(CustomPauseMark).Last().Length + CustomPauseMark.Length)];
+                }
+            }
+
+            tmp.CreateSilence(silence / 1000.0);
+
+            waves.Add(tmp);
+        }
+
+        public void Write()
+        {
+            Wave? tmp = null;
+
+            foreach (Wave wave in waves)
+            {
+                if (tmp is null)
+                {
+                    tmp = new(wave);
+                }
+                else
+                {
+                    tmp.Append(wave);
+                }
+            }
+
+            if (tmp is null)
+            {
+                return;
+            }
+
+            if (Ext.GCMZDrops.ProjectPath is string proj_path && Directory.GetParent(proj_path) is DirectoryInfo proj_dir)
+            {
+                string output_path = $@"{proj_dir.FullName}\{DateTime.Now.Ticks}";
+                File.WriteAllText(output_path + ".txt", Text, Encoding.GetEncoding("Shift_JIS"));
+
+                tmp.Save(output_path + ".wav");
+
+                List<string> files = new()
+                {
+                    output_path + ".wav",
+                    output_path + ".txt",
+                };
+                int layer = 1;
+                if (Preset.Num is int num)
+                {
+                    layer = num;
+                }
+
+                Ext.GCMZDrops.SendFiles(files, tmp.PlayTime.TotalMilliseconds, layer);
+            }
+        }
+    }
     internal class PhraseListView : ListBox
     {
+        private const int MAX_PHRASE_COUNT = 255;
+
         private bool processing = false;
 
         //単語辞書用のイベント
@@ -40,25 +135,183 @@ namespace Kiritanport
         public event MyEventHandler? SpeechBegin;
         public event MyEventHandler? SpeechEnd;
 
-        private event MyEventHandler? HidePhraseEditViewSignal;
-
         public event EventHandler? CheckStateChanged;
 
         public TAccentProvider AccentProvider { set; get; } = TAccentProvider.Default;
 
         public bool AccentLock = false;
+        public bool CustomPause = true;
+        public string CustomPauseMark = "$";
+
+        public VoicePreset? Preset => (SelectedItem as PhraseView)?.Preset;
+        public int? PresetIndex
+        {
+            get => (SelectedItem as PhraseView)?.Presets.SelectedIndex;
+            set
+            {
+                if (value is int v && SelectedItem is PhraseView phrase)
+                {
+                    phrase.Presets.SelectedIndex = v;
+                }
+            }
+        }
 
         public PhraseListView()
         {
-            SelectionChanged += CustomListBox_SelectionChanged;
-        }
-        private void CustomListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (e.Source == this)
+            SelectionChanged += (sender, e) =>
             {
-                HidePhraseEditViewSignal?.Invoke(this, new MyEventArgs());
+                foreach (PhraseView phrase in Items)
+                {
+                    phrase.Kana.Visibility = Visibility.Collapsed;
+                }
+            };
+        }
+
+        public bool? IsAllChecked
+        {
+            get
+            {
+                bool on = false;
+                bool off = false;
+
+                foreach (PhraseView phrase in Items)
+                {
+                    if (phrase.Check.IsChecked == true && on == false)
+                    {
+                        on = true;
+                    }
+                    if (phrase.Check.IsChecked == false && off == false)
+                    {
+                        off = true;
+                    }
+                }
+                if (on && off)
+                {
+                    return null;
+                }
+                else if (on)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            set
+            {
+                foreach (PhraseView phrase in Items)
+                {
+                    phrase.Check.IsChecked = value;
+                }
             }
         }
+
+        public int UncachedCheckedPhraseCount
+        {
+            get
+            {
+                int cnt = 0;
+                foreach (PhraseView curr in Items)
+                {
+                    if (curr.Check.IsChecked == true && curr.Wave is null && curr.Text.Text.Length > 0)
+                    {
+                        cnt++;
+                    }
+                }
+                return cnt;
+            }
+        }
+        public int CheckedPhraseCount
+        {
+            get
+            {
+                int cnt = 0;
+                foreach (PhraseView curr in Items)
+                {
+                    if (curr.Check.IsChecked == true && curr.Text.Text.Length > 0)
+                    {
+                        cnt++;
+                    }
+                }
+                return cnt;
+            }
+        }
+        public int PauseShort { set; get; } = 150;
+        public int PauseLong { set; get; } = 370;
+        public int PauseSentence { set; get; } = 800;
+
+        public new void Focus()
+        {
+            base.Focus();
+
+            (SelectedItem as PhraseView)?.Text.Focus();
+        }
+        public void SaveWaves(object sender, MyEventArgs e)
+        {
+            SpeechEnd -= SaveWaves;
+
+            if (e.Data is string mes && mes == "Canceled")
+            {
+                return;
+            }
+
+            Waves? waves = null;
+
+            foreach (PhraseView curr in Items)
+            {
+                if (curr.Check.IsChecked != true)
+                {
+                    continue;
+                }
+                if (curr.Preset is null)
+                {
+                    continue;
+                }
+
+                //空白のフレーズをWAVファイル分割の区切りとして使う
+                if (curr.Wave is null)
+                {
+                    if (waves is not null && waves.Count > 0)
+                    {
+                        waves.Write();
+                        waves = null;
+                    }
+                    continue;
+                }
+
+                if (waves is null)
+                {
+                    waves = new Waves(curr.Preset)
+                    {
+                        PauseShort = PauseShort,
+                        PauseLong = PauseLong,
+                        PauseSentence = PauseSentence,
+                        CustomPauseMark = CustomPauseMark,
+                    };
+                }
+
+                //プリセットの変化でWAVファイルを区切る
+                if (waves.Count > 0 && curr.Preset != waves.Preset)
+                {
+                    waves.Write();
+                    waves = new Waves(curr.Preset)
+                    {
+                        PauseShort = PauseShort,
+                        PauseLong = PauseLong,
+                        PauseSentence = PauseSentence,
+                        CustomPauseMark = CustomPauseMark,
+                    };
+                }
+                waves.Add(curr.Wave, curr.Text.Text);
+            }
+
+            if (waves is not null && waves.Count > 0)
+            {
+                waves.Write();
+            }
+        }
+
         public void Speech(string text)
         {
             if (SelectedItem is not PhraseView item)
@@ -70,13 +323,15 @@ namespace Kiritanport
                 && citem.Content is VoicePreset preset)
             {
 
-                string param = "";
+                string param = JsonSerializer.Serialize(preset);
+                /*
                 param += $"voice:{preset.VoiceName} ";
                 param += $"vol:{preset.Volume} ";
                 param += $"spd:{preset.Speed} ";
                 param += $"pit:{preset.Pitch} ";
                 param += $"emph:{preset.PitchRange} ";
                 param += $"dialect:{preset.Dialect}";
+                */
 
                 APIManager.Param(citem.DataContext, param);
                 APIManager.WaveReceived += APIManager_WaveReceived;
@@ -95,7 +350,7 @@ namespace Kiritanport
             if (SelectedItem is PhraseView sel)
             {
                 notice = true;
-                SpeechPhrase(sel);
+                SpeechPhrase(sel, true);
             }
         }
 
@@ -112,7 +367,7 @@ namespace Kiritanport
         }
 
         bool wave_only = false;
-        private void SpeechPhrase(PhraseView item)
+        private void SpeechPhrase(PhraseView item, bool with_sound)
         {
             if (item.Text.Text.Length == 0)
             {
@@ -128,14 +383,22 @@ namespace Kiritanport
                 item.IsSelected = true;
                 SpeechData speech = new();
 
+                string param = JsonSerializer.Serialize(preset);
+                /*
                 string param = "";
                 param += $"voice:{preset.VoiceName} ";
                 param += $"vol:{preset.Volume} ";
                 param += $"spd:{preset.Speed} ";
                 param += $"pit:{preset.Pitch} ";
                 param += $"emph:{preset.PitchRange} ";
-                param += $"dialect:{preset.Dialect}";
 
+                foreach(Style style in preset.Styles)
+                {
+                    param += $"[{style.Name}:{style.Value}] ";
+                }
+
+                param += $"dialect:{preset.Dialect}";
+                */
                 APIManager.Param(citem.DataContext, param);
 
                 speech.Dialect = preset.Dialect;
@@ -146,12 +409,20 @@ namespace Kiritanport
                 string text = item.Text.Text;
                 string kana = item.Kana.AIKana;
 
+                if (text.Split(CustomPauseMark).Length >= 2 && CustomPause)
+                {
+                    if (int.TryParse(text.Split(CustomPauseMark).Last(), out int result))
+                    {
+                        text = text[..^(text.Split(CustomPauseMark).Last().Length + CustomPauseMark.Length)];
+                    }
+                }
+
                 if (item.Kana.IsFocused && item.Kana.SelectedAIKana is not "<S>" and string selected)
                 {
                     kana = selected;
                 }
 
-                wave_only = false;
+                wave_only = !with_sound;
 
                 if (citem.DataContext == APIManager.AssistantSeikaAPI)
                 {
@@ -210,7 +481,7 @@ namespace Kiritanport
             return true;
         }
 
-        public void SpeechPhraseList(bool PrioritizeCache)
+        public void SpeechPhraseList(bool PrioritizeCache, bool with_sound)
         {
             ctsource = new CancellationTokenSource();
             SynchronizationContext? context = SynchronizationContext.Current;
@@ -237,6 +508,11 @@ namespace Kiritanport
 
                     context?.Send(_ => text = item.Text.Text, null);
 
+                    if (text.Length == 0)
+                    {
+                        continue;
+                    }
+
                     if ("。！？♪".Contains(text[^1]))
                     {
                         silence = 800;
@@ -250,15 +526,26 @@ namespace Kiritanport
                         silence = 150;
                     }
 
-                    bool cached = false;
-
-                    if (PrioritizeCache)
+                    if (text.Split(CustomPauseMark).Length >= 2)
                     {
-                        context?.Send(_ => cached = SpeechPhraseFromCache(item), null);
+                        if (int.TryParse(text.Split(CustomPauseMark).Last(), out int result))
+                        {
+                            silence = result;
+                        }
                     }
-                    if (!cached)
+
+                    bool cached = item.Wave is not null;
+
+                    if (PrioritizeCache && cached)
                     {
-                        context?.Send(_ => SpeechPhrase(item), null);
+                        if (with_sound)
+                        {
+                            context?.Send(_ => SpeechPhraseFromCache(item), null);
+                        }
+                    }
+                    else
+                    {
+                        context?.Send(_ => SpeechPhrase(item, with_sound), null);
                     }
 
                     while (processing)
@@ -284,7 +571,7 @@ namespace Kiritanport
                 received_item = null;
                 prev_speech = false;
 
-                SpeechEnd?.Invoke(this, new MyEventArgs());
+                SpeechEnd?.Invoke(this, new MyEventArgs() { Data = "Canceled" });
             }
         }
 
@@ -366,7 +653,55 @@ namespace Kiritanport
 
                 item.Presets.Items.Add(item_dst);
             }
+            foreach (PhraseView item in Stocks)
+            {
+                ComboBoxItem item_dst = new() { Content = preset, Focusable = false };
+                item_dst.SetBinding(DataContextProperty, binding);
+
+                item.Presets.Items.Add(item_dst);
+            }
         }
+        public bool RemovePreset(VoicePreset preset)
+        {
+            foreach (PhraseView item in Items)
+            {
+                if (item.Preset == preset)
+                {
+                    return false;
+                }
+            }
+
+            foreach (PhraseView item in Items)
+            {
+                item.Presets.Items.Remove(item.Presets.Items.Cast<ComboBoxItem>().First(x => x.Content == preset));
+            }
+            foreach (PhraseView item in Stocks)
+            {
+                item.Presets.Items.Remove(item.Presets.Items.Cast<ComboBoxItem>().First(x => x.Content == preset));
+            }
+
+            return true;
+        }
+        public void MovePreset(VoicePreset preset, int index_dst)
+        {
+            foreach (PhraseView phrase in Items)
+            {
+                var item = phrase.Presets.Items.Cast<ComboBoxItem>().First(x => x.Content == preset);
+                bool selected = item.IsSelected;
+
+                if (phrase.Presets.Items.IndexOf(item) != index_dst)
+                {
+                    phrase.Presets.Items.Remove(item);
+                    phrase.Presets.Items.Insert(index_dst, item);
+
+                    if (selected)
+                    {
+                        phrase.Presets.SelectedItem = item;
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// フレーズに設定されているプリセット名を一括で変更する
         /// </summary>
@@ -388,6 +723,21 @@ namespace Kiritanport
                     item.Presets.SelectedIndex = index;
                 }
             }
+            foreach (PhraseView item in Stocks)
+            {
+                if (item.Presets.Items[index] is ComboBoxItem citem)
+                {
+                    var content = citem.Content;
+                    citem.Content = null;
+                    citem.Content = content;
+                }
+
+                if (index == item.Presets.SelectedIndex)
+                {
+                    item.Presets.SelectedIndex = -1;
+                    item.Presets.SelectedIndex = index;
+                }
+            }
         }
         /// <summary>
         /// フレーズリストにフレーズを追加する
@@ -395,12 +745,22 @@ namespace Kiritanport
         /// <param name="focus"></param>
         public void AddPhraseLine(bool focus)
         {
-            PhraseView dst = CreatePhraseView(focus);
+            if (Items.Count > MAX_PHRASE_COUNT)
+            {
+                return;
+            }
+
+            PhraseView dst = CreatePhraseView();
+            dst.IsFocusOnLoadead = focus;
             if (Items.Count > 0)
             {
                 if (Items[^1] is PhraseView src)
                 {
                     dst.Presets.SelectedIndex = src.Presets.SelectedIndex;
+                }
+                else
+                {
+                    dst.Presets.SelectedIndex = 0;
                 }
             }
             Items.Add(dst);
@@ -409,26 +769,35 @@ namespace Kiritanport
         }
         public void RemovePhraseLine(bool focus)
         {
-            if (SelectedItem is not null)
+            if (SelectedItem is PhraseView phrase)
             {
-                SelectedIndex--;
                 if (focus)
                 {
-                    if (SelectedItem is PhraseView phrase)
-                    {
-                        phrase.Text.Focus();
-                    }
+                    SelectedIndex--;
                 }
-                Items.Remove(Items[SelectedIndex + 1]);
+                Items.Remove(phrase);
+                phrase.Refresh();
+                Stocks.Enqueue(phrase);
             }
             CheckStateChanged?.Invoke(this, new EventArgs());
         }
         public void InsertPhraseLine(bool focus)
         {
-            PhraseView dst = CreatePhraseView(focus);
+            if (Items.Count > MAX_PHRASE_COUNT)
+            {
+                return;
+            }
+
+            PhraseView dst = CreatePhraseView();
+            dst.IsFocusOnLoadead = focus;
+
             if (SelectedItem is PhraseView src)
             {
                 dst.Presets.SelectedIndex = src.Presets.SelectedIndex;
+            }
+            else
+            {
+                dst.Presets.SelectedIndex = 0;
             }
             Items.Insert(SelectedIndex + 1, dst);
             ScrollIntoView(dst);
@@ -449,8 +818,15 @@ namespace Kiritanport
                 }
             }
         }
-        private PhraseView CreatePhraseView(bool focus)
+
+        private readonly Queue<PhraseView> Stocks = new();
+        private PhraseView CreatePhraseView()
         {
+            if (Stocks.Count > 0)
+            {
+                return Stocks.Dequeue();
+            }
+
             PhraseView phrase = new();
 
             phrase.Text.SelectionChanged += (sender, e) =>
@@ -476,11 +852,6 @@ namespace Kiritanport
             phrase.Check.Checked += Check_Changed;
             phrase.Check.Unchecked += Check_Changed;
 
-            HidePhraseEditViewSignal += (sender, e) =>
-            {
-                phrase.Kana.Visibility = Visibility.Collapsed;
-            };
-
             foreach ((VoicePreset preset, Binding binding) in bindlist)
             {
                 ComboBoxItem cbitem = new() { Content = preset, Focusable = false };
@@ -491,14 +862,6 @@ namespace Kiritanport
             {
                 parent.Children.Add(phrase.Kana);
             }
-            if (focus)
-            {
-                phrase.Text.Loaded += (sender, e) =>
-                {
-                    phrase.Text.Focus();
-                };
-            }
-
             return phrase;
         }
 

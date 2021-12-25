@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AssistantSeikaAPI
+namespace Kiritanport.AssistantSeika
 {
     internal class Program
     {
@@ -30,6 +30,8 @@ namespace AssistantSeikaAPI
             string read_line;
             while ((read_line = Console.ReadLine()) != null)
             {
+                Console.WriteLine(read_line);
+
                 string cmd = read_line.Split('<')[0];
 
                 switch (cmd)

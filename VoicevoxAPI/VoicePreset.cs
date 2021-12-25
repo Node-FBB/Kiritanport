@@ -39,8 +39,6 @@ namespace Kiritanport.Voiceroid
         public int LongPause { set; get; } = 370;
         public Style[] Styles { set; get; } = Array.Empty<Style>();
 
-        public int? Num = null;
-
         public override string ToString()
         {
             return PresetName;

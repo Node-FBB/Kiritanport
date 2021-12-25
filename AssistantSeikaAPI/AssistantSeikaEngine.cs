@@ -1,14 +1,16 @@
-﻿using System;
+﻿using Kiritanport.Voiceroid;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.ServiceModel;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AssistantSeikaAPI
+namespace Kiritanport.AssistantSeika
 {
     [ServiceContract(SessionMode = SessionMode.Required)]
     interface IScAPIs
@@ -67,40 +69,87 @@ namespace AssistantSeikaAPI
 
             foreach (var speaker in api.AvatorList())
             {
-                Console.WriteLine($"voice>{speaker.Key}:{speaker.Value}");
+                var param = api.GetDefaultParams2(speaker.Key);
+
+                VoicePreset preset = new VoicePreset()
+                {
+                    VoiceName = $"{speaker.Key}",
+                    PresetName = speaker.Value,
+                    Styles = new Style[param["emotion"].Count],
+                };
+
+                int cnt = 0;
+                foreach (string key in param["emotion"].Keys)
+                {
+                    float value = (float)param["emotion"][key]["value"];
+                    preset.Styles[cnt] = new Style { Name = key, Value = value };
+                }
+
+
+                Console.WriteLine($"voice>{JsonSerializer.Serialize(preset)}");
             }
         }
 
+        static Dictionary<string, Dictionary<string, Dictionary<string, decimal>>> parameters;
         public static void SetParam(string param_str)
         {
-            foreach (string str in param_str.Split(' '))
+            VoicePreset preset = JsonSerializer.Deserialize<VoicePreset>(param_str);
+
+            cid = int.Parse(preset.VoiceName);
+            parameters = api.GetDefaultParams2(cid);
+
+            ApplyEffect("volume", preset.Volume);
+            ApplyEffect("speed", preset.Speed);
+            ApplyEffect("pitch", preset.Pitch);
+            ApplyEffect("intonation", preset.PitchRange);
+
+            foreach (Style emo in preset.Styles)
             {
-                if (str.StartsWith("voice:"))
+                ApplyEmotion(emo.Name, emo.Value);
+            }
+        }
+
+        private static void ApplyEmotion(string name, float value)
+        {
+            if (parameters["effect"].ContainsKey(name))
+            {
+                decimal min = parameters["effect"][name]["min"];
+                decimal max = parameters["effect"][name]["max"];
+                //decimal val = parameters["effect"][name]["value"];
+                decimal dst = (decimal)((float)max * value);
+
+                if (dst < min)
                 {
-                    if (int.TryParse(str.Split(':')[1], out int result))
-                    {
-                        cid = result;
-                    }
+                    dst = min;
                 }
-                //パラメータの設定が未対応
-                /*
-                if (str.StartsWith("vol:"))
+                if (dst > max)
                 {
-                    float volume = float.Parse(str.Split(':')[1]);
+                    dst = max;
                 }
-                if (str.StartsWith("spd:"))
+
+                parameters["effect"][name]["value"] = dst;
+            }
+        }
+
+        private static void ApplyEffect(string name, float value)
+        {
+            if (parameters["effect"].ContainsKey(name))
+            {
+                decimal min = parameters["effect"][name]["min"];
+                decimal max = parameters["effect"][name]["max"];
+                decimal val = parameters["effect"][name]["value"];
+                decimal dst = (decimal)((float)val * value);
+
+                if (dst < min)
                 {
-                    float speed = float.Parse(str.Split(':')[1]);
+                    dst = min;
                 }
-                if (str.StartsWith("pit:"))
+                if (dst > max)
                 {
-                    float pitch = float.Parse(str.Split(':')[1]);
+                    dst = max;
                 }
-                if (str.StartsWith("emph:"))
-                {
-                    float range = float.Parse(str.Split(':')[1]);
-                }
-                */
+
+                parameters["effect"][name]["value"] = dst;
             }
         }
         public static void TextToSpeech(string text)
@@ -109,7 +158,29 @@ namespace AssistantSeikaAPI
 
             Console.WriteLine($"process<{id}");
 
-            api.Talk(cid, text, Path.GetFullPath(@".\tmp.wav"), null, null);
+            Dictionary<string, decimal> effects = new Dictionary<string, decimal>();
+
+            if (parameters != null)
+            {
+                if (parameters["effect"].ContainsKey("volume"))
+                {
+                    effects["volume"] = parameters["effect"]["volume"]["value"];
+                }
+                if (parameters["effect"].ContainsKey("speed"))
+                {
+                    effects["speed"] = parameters["effect"]["speed"]["value"];
+                }
+                if (parameters["effect"].ContainsKey("pitch"))
+                {
+                    effects["pitch"] = parameters["effect"]["pitch"]["value"];
+                }
+                if (parameters["effect"].ContainsKey("intonation"))
+                {
+                    effects["intonation"] = parameters["effect"]["intonation"]["value"];
+                }
+            }
+
+            api.Talk(cid, text, Path.GetFullPath(@".\tmp.wav"), effects, null);
 
             FileStream stream = new FileStream(@".\tmp.wav", FileMode.Open);
             MemoryStream wavData = new MemoryStream((int)stream.Length);
@@ -117,7 +188,7 @@ namespace AssistantSeikaAPI
             stream.Close();
             stream.Dispose();
 
-            File.Delete(@".\tmp.wav");
+            //File.Delete(@".\tmp.wav");
 
             string mmf_name = $"assistant_seika_{id}";
             MemoryMappedFile mmf = MemoryMappedFile.CreateNew(mmf_name, wavData.Length);

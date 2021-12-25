@@ -63,6 +63,7 @@ namespace Kiritanport.SubControls
         public AccentView Kana { get; init; } = default!;
         public ComboBox Presets { get; init; } = default!;
         public CheckBox Check { get; init; } = default!;
+        public bool IsFocusOnLoadead { get; set; } = false;
 
         /// <summary>
         /// クリア条件
@@ -121,6 +122,7 @@ namespace Kiritanport.SubControls
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, -5, 0),
+                Focusable = false,
             };
             Kana = new()
             {
@@ -139,6 +141,13 @@ namespace Kiritanport.SubControls
             Selected += (sender, e) =>
             {
                 Text.Focus();
+            };
+            Loaded += (sender, e) =>
+            {
+                if (IsFocusOnLoadead)
+                {
+                    Text.Focus();
+                }
             };
 
             Text.PreviewKeyDown += Text_KeyDown;
@@ -202,6 +211,15 @@ namespace Kiritanport.SubControls
             Base.Children.Add(Presets);
             Base.Children.Add(Text);
             Base.Children.Add(Check);
+        }
+
+        public void Refresh()
+        {
+            Wave = null;
+            Text.Text = "";
+            Kana.Text = "";
+            Check.IsChecked = false;
+            Presets.SelectedIndex = -1;
         }
 
         private void Text_KeyDown(object sender, KeyEventArgs e)

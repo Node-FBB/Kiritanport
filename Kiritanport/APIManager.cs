@@ -79,15 +79,10 @@ namespace Kiritanport
             apis["VV"] = new Process();
             apis["AS"] = new Process();
 
-            if (File.Exists(@".\APIs\VOICEROID2\VoiceroidAPI.exe"))
-            {
-                apis["VR"].StartInfo.FileName = @".\APIs\VOICEROID2\VoiceroidAPI.exe";
-            }
-            else
-            {
-                apis["VR"].StartInfo.FileName = @"..\..\..\..\VoiceroidAPI\bin\Debug\VoiceroidAPI.exe";
-            }
 
+            apis["VR"].StartInfo.FileName = @"..\..\..\..\VoiceroidAPI\bin\Debug\VoiceroidAPI.exe";
+            apis["VV"].StartInfo.FileName = @"..\..\..\..\VoicevoxAPI\bin\Debug\net6.0\VoicevoxAPI.exe";
+            apis["AS"].StartInfo.FileName = @"..\..\..\..\AssistantSeikaAPI\bin\Debug\AssistantSeikaAPI.exe";
 
             StreamReader reader = new(@".\settings.ini");
             while (reader.ReadLine() is string str)
@@ -103,7 +98,17 @@ namespace Kiritanport
                 }
             }
 
-
+            /*
+            if (File.Exists(@".\APIs\VOICEROID2\VoiceroidAPI.exe"))
+            {
+                apis["VR"].StartInfo.FileName = @".\APIs\VOICEROID2\VoiceroidAPI.exe";
+            }
+            else
+            {
+                apis["VR"].StartInfo.FileName = @"..\..\..\..\VoiceroidAPI\bin\Debug\VoiceroidAPI.exe";
+            }
+            */
+            /*
             if (File.Exists(@".\APIs\VOICEVOX\VoicevoxAPI.exe"))
             {
                 apis["VV"].StartInfo.FileName = @".\APIs\VOICEVOX\VoicevoxAPI.exe";
@@ -112,9 +117,8 @@ namespace Kiritanport
             {
                 apis["VV"].StartInfo.FileName = @"..\..\..\..\VoicevoxAPI\bin\Debug\net6.0\VoicevoxAPI.exe";
             }
+            */
 
-
-            apis["AS"].StartInfo.FileName = @"..\..\..\..\AssistantSeikaAPI\bin\Debug\AssistantSeikaAPI.exe";
 
 
             SynchronizationContext? syncContext = SynchronizationContext.Current;
@@ -151,7 +155,7 @@ namespace Kiritanport
                     Log += $"{key}:{e.Data}\n";
                 }
 
-                if (process.HasExited)
+                if (process?.HasExited == true)
                 {
                     return;
                 }

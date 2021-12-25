@@ -17,6 +17,7 @@ namespace Kiritanport
         private const int WAVE_BPS = 28;
         private const int WAVE_BLOCK = 32;
         private const int WAVE_DEPTH = 34;
+        private const int WAVE_FMT_SIZE = 16;
 
         /// <summary>
         /// Waveファイルのサイズ - 8byte
@@ -41,6 +42,37 @@ namespace Kiritanport
         private int BPS => GetParamater(WAVE_BPS, false);
         private short Block => (short)GetParamater(WAVE_BLOCK, true);
         private short Depth => (short)GetParamater(WAVE_DEPTH, true);
+
+        private int FMTLength => GetParamater(WAVE_FMT_SIZE, false);
+        /// <summary>
+        /// 非PCM形式でないかどうかを返す
+        /// factチャンクが存在する場合はfalse
+        /// 存在しない場合はtrue
+        /// 不明なフォーマットの場合はnull
+        /// </summary>
+        private bool? IsPCM
+        {
+            get
+            {
+                byte[] buffer = new byte[4];
+
+                long p = Position;
+
+                Position = FMTLength + 20;
+                Read(buffer);
+                Position = p;
+
+                switch (Encoding.UTF8.GetString(buffer))
+                {
+                    case "data":
+                        return true;
+                    case "fact":
+                        return false;
+                    default:
+                        return null;
+                }
+            }
+        }
 
         /// <summary>
         /// 生データのサイズ
@@ -120,8 +152,18 @@ namespace Kiritanport
             Write(wavData.ToArray());
         }
 
+        /// <summary>
+        /// 指定した秒数の無音を音声の最後に追加する
+        /// IsPCMがtrueではない場合はエラーになる（正常に機能しない可能性が高いので）
+        /// </summary>
+        /// <param name="seconds"></param>
         public void CreateSilence(double seconds)
         {
+            if (IsPCM != true)
+            {
+                throw new("unsuported format.(suported only pcm format.)");
+            }
+
             int length = (int)(BPS * seconds) - (int)(BPS * seconds) % Block + Block;
 
             byte[] silence = new byte[length];
@@ -133,12 +175,91 @@ namespace Kiritanport
             DataLength += length;
         }
         /// <summary>
+        /// 指定した秒数の無音を音声の最後に追加する
+        /// PCM音源以外にも行えるため、正常に機能しない可能性がある
+        /// </summary>
+        /// <param name="seconds"></param>
+        [Obsolete("このメソッドの使用は非推奨です")]
+        public void CreateSilence_f(double seconds)
+        {
+            int length = (int)(BPS * seconds) - (int)(BPS * seconds) % Block + Block;
+
+            byte[] silence = new byte[length];
+
+            Position = Length;
+            Write(silence);
+
+            FileLength += length;
+            DataLength += length;
+        }
+
+        /// <summary>
         /// Waveデータを追加する
         /// 追加先が空だった場合は追加元のコピーになる
+        /// IsPCMがtrueではない場合はエラーになる（正常に機能しない可能性が高いので）
         /// </summary>
         /// <param name="src">追加するWave</param>
         /// <returns>追加に成功した場合はtrue（フォーマット不一致の場合はfalse)</returns>
         public bool Append(Wave src)
+        {
+            if (IsPCM != true)
+            {
+                throw new("unsuported format.(suported only pcm format.)");
+            }
+
+            Wave dst = this;
+
+            if (dst.Length == 0)
+            {
+                src.CopyTo(dst);
+
+                return true;
+            }
+
+            if (src == dst)
+            {
+                throw new("self appending is not supported.");
+            }
+
+            if (src.DataOffset != dst.DataOffset)
+            {
+                return false;
+            }
+
+            //フォーマットの比較
+            byte[] src_header = new byte[src.DataOffset];
+            byte[] dst_header = new byte[dst.DataOffset];
+
+            src.Position = 0;
+            dst.Position = 0;
+            src.Read(src_header);
+            dst.Read(dst_header);
+
+            for (int i = 8; i < src.DataOffset; i++)
+            {
+                if (src_header[i] != dst_header[i])
+                {
+                    return false;
+                }
+            }
+
+            dst.Position = dst.FileLength;
+            dst.Write(src.ToArray(), src.DataOffset + 8, src.DataLength);
+
+            dst.FileLength += src.DataLength;
+            dst.DataLength += src.DataLength;
+
+            return true;
+        }
+        /// <summary>
+        /// Waveデータを追加する
+        /// 追加先が空だった場合は追加元のコピーになる
+        /// PCM音源以外にも行えるため、正常に機能しない可能性がある
+        /// </summary>
+        /// <param name="src">追加するWave</param>
+        /// <returns>追加に成功した場合はtrue（フォーマット不一致の場合はfalse)</returns>
+        [Obsolete("このメソッドの使用は非推奨です")]
+        public bool Append_f(Wave src)
         {
             Wave dst = this;
 

@@ -1,13 +1,15 @@
-﻿using System;
+﻿using Kiritanport.Voiceroid;
+using System;
 using System.Collections.Generic;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace VoicevoxAPI
+namespace Kiritanport.Voicevox
 {
     /// <summary>
     /// VOICEVOX ENGINE (0.9.0) に対応
@@ -61,7 +63,13 @@ namespace VoicevoxAPI
 
                         foreach (TStyle style in speaker.styles)
                         {
-                            Console.WriteLine($"voice>{style.id}:{speaker.name}({style.name})");
+                            VoicePreset preset = new()
+                            {
+                                VoiceName = $"{style.id}",
+                                PresetName = $"{speaker.name}({style.name})",
+                            };
+
+                            Console.WriteLine($"voice>{JsonSerializer.Serialize(preset)}");
                         }
                     }
                 }
@@ -86,33 +94,13 @@ namespace VoicevoxAPI
             //VOICEVOXでは指定可能なパラメータ範囲に明確な制約はないものの
             //この範囲に収まるようにした方が無難だと思われる
 
-
-            foreach (string str in param_str.Split(' '))
+            if (JsonSerializer.Deserialize<VoicePreset>(param_str) is VoicePreset preset)
             {
-                if (str.StartsWith("voice:"))
-                {
-                    voice = str.Split(':')[1];
-                }
-                if (str.StartsWith("vol:"))
-                {
-                    float volume = float.Parse(str.Split(':')[1]);
-                    audio_query.volumeScale = volume;
-                }
-                if (str.StartsWith("spd:"))
-                {
-                    float speed = float.Parse(str.Split(':')[1]);
-                    audio_query.speedScale = speed;
-                }
-                if (str.StartsWith("pit:"))
-                {
-                    float pitch = float.Parse(str.Split(':')[1]);
-                    audio_query.pitchScale = (pitch - 1.0) / 10.0;
-                }
-                if (str.StartsWith("emph:"))
-                {
-                    float range = float.Parse(str.Split(':')[1]);
-                    audio_query.intonationScale = range;
-                }
+                voice = preset.VoiceName;
+                audio_query.volumeScale = preset.Volume;
+                audio_query.speedScale = preset.Speed;
+                audio_query.pitchScale = (preset.Pitch - 1.0) / 10.0;
+                audio_query.intonationScale = preset.PitchRange;
             }
         }
         public static async void TextToKana(string text)
@@ -153,6 +141,42 @@ namespace VoicevoxAPI
                 //アクセント句を各種読み仮名に変換して出力する
                 Console.WriteLine($"aqkana>{audio_query.kana}");
                 Console.WriteLine($"aikana>{KanaConvarter.AqKanaToAIKana(audio_query.kana)}");
+
+                /*
+
+                double tick = 0;//1tick = 100ns , 1s = 10,000,000tick
+                foreach (var phrase in audio_query.accent_phrases)
+                {
+                    foreach (var mora in phrase.moras)
+                    {
+
+                        if (mora.consonant is not null && mora.consonant_length is not null)
+                        {
+                            Console.Write($"{tick} ");
+                            tick += (long)(mora.consonant_length * 10000000L);
+                            Console.WriteLine($"{tick} {mora.consonant}");
+                        }
+
+                        Console.Write($"{tick} ");
+                        tick += (long)(mora.vowel_length * 10000000L);
+                        Console.WriteLine($"{tick} {mora.vowel}");
+
+                    }
+                    if (phrase.pause_mora is not null)
+                    {
+                        if (phrase.pause_mora.consonant is not null && phrase.pause_mora.consonant_length is not null)
+                        {
+                            Console.Write($"{tick} ");
+                            tick += (long)(phrase.pause_mora.consonant_length * 10000000L);
+                            Console.WriteLine($"{tick} {phrase.pause_mora.consonant}");
+                        }
+
+                        Console.Write($"{tick} ");
+                        tick += (long)(phrase.pause_mora.vowel_length * 10000000L);
+                        Console.WriteLine($"{tick} {phrase.pause_mora.vowel}");
+                    }
+                }
+                */
             }
             Console.WriteLine($"process>{id}");
         }
@@ -306,6 +330,59 @@ namespace VoicevoxAPI
                     Console.WriteLine($"aqkana>{audio_query.kana}");
                     Console.WriteLine($"aikana>{KanaConvarter.AqKanaToAIKana(audio_query.kana)}");
 
+                    /*
+                     * .labファイル読み込みテスト
+                     * 
+                    using StreamReader reader = new(@".\test.lab");
+
+                    List<(double t, string s)> lab = new();
+                    string? line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (line.Split(" ").Length == 3)
+                        {
+                            double time = (long.Parse(line.Split(" ")[1]) - long.Parse(line.Split(" ")[0])) / 10000000.0;
+
+                            string s = line.Split(" ")[2];
+
+                            lab.Add((time, s));
+                        }
+                    }
+
+                    int cnt = 0;
+
+                    foreach (var phrase in audio_query.accent_phrases)
+                    {
+                        foreach (var mora in phrase.moras)
+                        {
+                            if (mora.consonant is not null && mora.consonant_length is not null)
+                            {
+                                Console.WriteLine($"{mora.consonant}[{mora.consonant_length}]:{lab[cnt].s}[{lab[cnt].t}]");
+                                mora.consonant_length = lab[cnt].t;
+                                cnt++;
+                            }
+
+                            Console.WriteLine($"{mora.vowel}[{mora.vowel_length}]:{lab[cnt].s}[{lab[cnt].t}]");
+                            mora.vowel_length = lab[cnt].t;
+                            cnt++;
+                        }
+                        if (phrase.pause_mora is not null)
+                        {
+                            if (phrase.pause_mora.consonant is not null && phrase.pause_mora.consonant_length is not null)
+                            {
+                                Console.WriteLine($"{phrase.pause_mora.consonant}[{phrase.pause_mora.consonant_length}]:{lab[cnt].s}[{lab[cnt].t}]");
+                                phrase.pause_mora.consonant_length = lab[cnt].t;
+                                cnt++;
+                            }
+
+                            Console.WriteLine($"{phrase.pause_mora.vowel}[{phrase.pause_mora.vowel_length}]:{lab[cnt].s}[{lab[cnt].t}]");
+                            phrase.pause_mora.vowel_length = lab[cnt].t;
+                            cnt++;
+                        }
+                    }
+
+                    */
+
                     //音声合成用のクエリをHttpContentに格納
                     HttpContent content = new StringContent(JsonSerializer.Serialize(audio_query), Encoding.UTF8, @"application/json");
 
@@ -321,6 +398,9 @@ namespace VoicevoxAPI
                     //生成結果をMemoryStreamへコピー
                     MemoryStream wavData = new();
                     result.Content.ReadAsStream(ct).CopyTo(wavData);
+
+                    using BinaryWriter writer = new(new FileStream(@".\test2.wav", FileMode.OpenOrCreate));
+                    writer.Write(wavData.ToArray());
 
                     //適当な名前を付けてMemoryMappedFileを作成
                     string name = $"voicevox_{id}";
