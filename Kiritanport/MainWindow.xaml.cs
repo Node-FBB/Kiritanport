@@ -412,12 +412,89 @@ namespace Kiritanport
                 }
             };
 
+            TB_PauseShort.TextChanged += TB_PauseShort_TextChanged;
+            TB_PauseLong.TextChanged += TB_PauseLong_TextChanged;
+            TB_PauseSentence.TextChanged += TB_PauseSentence_TextChanged;
+
+            TB_PauseShort.LostFocus += TB_Pause_LostFocus;
+            TB_PauseLong.LostFocus += TB_Pause_LostFocus;
+            TB_PauseSentence.LostFocus += TB_Pause_LostFocus;
+
             CB_PresetList.SelectedIndex = 0;
             PL_PhraseList.SelectedIndex = 0;
             PL_PhraseList.PresetIndex = 0;
 
             IsEnabled = true;
             IsInit = true;
+        }
+
+        private void TB_Pause_LostFocus(object sender, RoutedEventArgs e)
+        {
+            TB_PauseShort.Text = PL_PhraseList.PauseShort.ToString();
+            TB_PauseLong.Text = PL_PhraseList.PauseLong.ToString();
+            TB_PauseSentence.Text = PL_PhraseList.PauseSentence.ToString();
+        }
+
+        private void TB_PauseSentence_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (int.TryParse(TB_PauseSentence.Text, out int pause))
+            {
+                if (pause < 0 || pause > 10000)
+                {
+                    TB_PauseSentence.Background = Brushes.Red;
+                }
+                else
+                {
+                    PL_PhraseList.PauseSentence = pause;
+                    TB_PauseSentence.Background = Brushes.White;
+                }
+            }
+            else
+            {
+                TB_PauseSentence.Background = Brushes.Red;
+            }
+        }
+
+        private void TB_PauseLong_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (int.TryParse(TB_PauseLong.Text, out int pause))
+            {
+                //100~2000
+                if (PL_PhraseList.PauseShort > pause || pause < 100 || pause > 2000)
+                {
+                    TB_PauseLong.Background = Brushes.Red;
+                }
+                else
+                {
+                    PL_PhraseList.PauseLong = pause;
+                    TB_PauseLong.Background = Brushes.White;
+                }
+            }
+            else
+            {
+                TB_PauseLong.Background = Brushes.Red;
+            }
+        }
+
+        private void TB_PauseShort_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (int.TryParse(TB_PauseShort.Text, out int pause))
+            {
+                //80~500
+                if (PL_PhraseList.PauseLong < pause || pause < 80 || pause > 500)
+                {
+                    TB_PauseShort.Background = Brushes.Red;
+                }
+                else
+                {
+                    PL_PhraseList.PauseShort = pause;
+                    TB_PauseShort.Background = Brushes.White;
+                }
+            }
+            else
+            {
+                TB_PauseShort.Background = Brushes.Red;
+            }
         }
 
         private void CB_VoiceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -597,16 +674,8 @@ namespace Kiritanport
             pdic_standard = pdic;
             pdic_kansai = pdic;
 
-            if (File.Exists(wdic.PathDic))
-            {
-                APIManager.Dictionary(APIManager.VoiceroidAPI, wdic_standard.PathDic);
-                APIManager.DictionaryKansai(APIManager.VoiceroidAPI, wdic_kansai.PathDic);
-            }
-            if (File.Exists(pdic.PathDic))
-            {
-                APIManager.Dictionary(APIManager.VoiceroidAPI, pdic_standard.PathDic);
-                APIManager.DictionaryKansai(APIManager.VoiceroidAPI, pdic_kansai.PathDic);
-            }
+            UpdatePdic(false, true);
+            UpdateWdic(false, true);
 
             foreach (WordClass wclass in Enum.GetValues(typeof(WordClass)))
             {
@@ -622,15 +691,66 @@ namespace Kiritanport
                 using StreamWriter writer = new(PathConfigre);
                 serializer.Serialize(writer, configure);
 
-                wdic_standard?.Save();
-                pdic_standard?.Save();
+                UpdateWdic(true, false);
+                UpdatePdic(true, false);
+            }
+        }
+
+        private void UpdateWdic(bool save, bool reload)
+        {
+            if (wdic_kansai is null || wdic_standard is null)
+            {
+                throw new();
+            }
+
+            if (save)
+            {
+                wdic_standard.Save();
+
                 if (wdic_standard != wdic_kansai)
                 {
-                    wdic_kansai?.Save();
+                    wdic_kansai.Save();
                 }
+            }
+
+            if (reload)
+            {
+                if (File.Exists(wdic_standard.PathDic))
+                {
+                    APIManager.Dictionary(APIManager.VoiceroidAPI, wdic_standard.PathDic);
+                }
+                if (File.Exists(wdic_kansai.PathDic))
+                {
+                    APIManager.DictionaryKansai(APIManager.VoiceroidAPI, wdic_kansai.PathDic);
+                }
+            }
+        }
+        private void UpdatePdic(bool save, bool reload)
+        {
+            if (pdic_kansai is null || pdic_standard is null)
+            {
+                throw new();
+            }
+
+            if (save)
+            {
+                pdic_standard.Save();
+
                 if (pdic_standard != pdic_kansai)
                 {
-                    pdic_kansai?.Save();
+                    pdic_kansai.Save();
+                }
+            }
+
+            if (reload)
+            {
+                if (File.Exists(pdic_standard.PathDic))
+                {
+                    APIManager.Dictionary(APIManager.VoiceroidAPI, pdic_standard.PathDic);
+                }
+                if (File.Exists(pdic_kansai.PathDic))
+                {
+                    APIManager.DictionaryKansai(APIManager.VoiceroidAPI, pdic_kansai.PathDic);
                 }
             }
         }
@@ -758,6 +878,7 @@ namespace Kiritanport
 
                 dic.AddWord($"{TB_WordText.Text}", $"<S>{TB_WordKana.Text}<N>", wclass, WordPriority.MID);
                 dic.Save();
+                UpdateWdic(false, true);
 
                 dic.FindWords(prev.Text, out List<Word> words);
 
@@ -783,8 +904,6 @@ namespace Kiritanport
 
                     LB_WordList.Items.Add(item);
                 }
-                APIManager.Dictionary(APIManager.VoiceroidAPI, wdic_standard.PathDic);
-                APIManager.DictionaryKansai(APIManager.VoiceroidAPI, wdic_kansai.PathDic);
             }
         }
         private void BT_WordRemove_Click(object sender, RoutedEventArgs e)
@@ -794,8 +913,10 @@ namespace Kiritanport
             {
                 WordDictionary dic = prev.Dialect == TDialect.Standard ? wdic_standard : wdic_kansai;
                 dic.RemoveWord(word.Text, word.wordClass);
-                APIManager.Dictionary(APIManager.VoiceroidAPI, wdic_standard.PathDic);
-                APIManager.DictionaryKansai(APIManager.VoiceroidAPI, wdic_kansai.PathDic);
+                dic.Save();
+                UpdateWdic(false, true);
+
+                LB_WordList.Items.Remove(src);
             }
         }
         private void BT_PhraseAdd_Click(object sender, RoutedEventArgs e)
@@ -810,9 +931,51 @@ namespace Kiritanport
         {
             PL_PhraseList.EditPhraseLine();
         }
+
         private void BT_PhraseSave_Click(object sender, RoutedEventArgs e)
         {
+            if (pdic_kansai is null || pdic_standard is null)
+            {
+                throw new();
+            }
 
+            var result = PL_PhraseList.GetCheckedPhraseKana(Brushes.LightGreen, Brushes.LightPink);
+
+            foreach (var (text, kana, dialect) in result)
+            {
+                if (dialect == TDialect.Standard)
+                {
+                    pdic_standard.AddPhrase(text, kana);
+                }
+                else
+                {
+                    pdic_kansai.AddPhrase(text, kana);
+                }
+            }
+
+            UpdatePdic(true, true);
+        }
+        private void BT_PhraseDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (pdic_kansai is null || pdic_standard is null)
+            {
+                throw new();
+            }
+
+            var result = PL_PhraseList.GetCheckedPhraseKana(Brushes.LightGray, null);
+            foreach (var (text, _, dialect) in result)
+            {
+                if (dialect == TDialect.Standard)
+                {
+                    pdic_standard.RemovePhrase(text);
+                }
+                else
+                {
+                    pdic_kansai.RemovePhrase(text);
+                }
+            }
+
+            UpdatePdic(true, true);
         }
 
         bool close_flag = false;
@@ -1033,5 +1196,6 @@ namespace Kiritanport
 
             configure.Presets = dst.ToArray();
         }
+
     }
 }

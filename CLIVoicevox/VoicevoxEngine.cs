@@ -28,7 +28,7 @@ namespace Kiritanport.Voicevox
         private static string voice = "0";
 
         //VOICEVOX HTTPサーバーに接続するためのクライアント
-        private static HttpClient client = new()
+        private static readonly HttpClient client = new()
         {
             BaseAddress = new Uri("http://localhost:50021/"),
         };
@@ -105,6 +105,20 @@ namespace Kiritanport.Voicevox
         }
         public static async void TextToKana(string text)
         {
+            //AIKanaが入力された場合はAqKanaにダウンコンバートした際のAIKanaおよびAqKanaを表示する
+            if (text.StartsWith("<S>"))
+            {
+                Console.WriteLine($"aikana<{text}");
+
+                string aqkana = KanaConvarter.AIKanaToAqKana(text);
+                string aikana = KanaConvarter.AqKanaToAIKana(aqkana);
+
+                Console.WriteLine($"aqkana>{aqkana}");
+                Console.WriteLine($"aikana>{aikana}");
+
+                return;
+            }
+
             long id = DateTime.Now.Ticks;
             Console.WriteLine($"process<{id}");
 

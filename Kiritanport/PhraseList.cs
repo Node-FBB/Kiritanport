@@ -120,7 +120,7 @@ namespace Kiritanport
             }
         }
     }
-    internal class PhraseListView : ListBox
+    internal class PhraseList : ListBox
     {
         private const int MAX_PHRASE_COUNT = 255;
 
@@ -143,24 +143,24 @@ namespace Kiritanport
         public bool CustomPause = true;
         public string CustomPauseMark = "$";
 
-        public VoicePreset? Preset => (SelectedItem as PhraseView)?.Preset;
+        public VoicePreset? Preset => (SelectedItem as PhraseEditView)?.Preset;
         public int? PresetIndex
         {
-            get => (SelectedItem as PhraseView)?.Presets.SelectedIndex;
+            get => (SelectedItem as PhraseEditView)?.Presets.SelectedIndex;
             set
             {
-                if (value is int v && SelectedItem is PhraseView phrase)
+                if (value is int v && SelectedItem is PhraseEditView phrase)
                 {
                     phrase.Presets.SelectedIndex = v;
                 }
             }
         }
 
-        public PhraseListView()
+        public PhraseList()
         {
             SelectionChanged += (sender, e) =>
             {
-                foreach (PhraseView phrase in Items)
+                foreach (PhraseEditView phrase in Items)
                 {
                     phrase.Kana.Visibility = Visibility.Collapsed;
                 }
@@ -174,7 +174,7 @@ namespace Kiritanport
                 bool on = false;
                 bool off = false;
 
-                foreach (PhraseView phrase in Items)
+                foreach (PhraseEditView phrase in Items)
                 {
                     if (phrase.Check.IsChecked == true && on == false)
                     {
@@ -200,7 +200,7 @@ namespace Kiritanport
             }
             set
             {
-                foreach (PhraseView phrase in Items)
+                foreach (PhraseEditView phrase in Items)
                 {
                     phrase.Check.IsChecked = value;
                 }
@@ -212,7 +212,7 @@ namespace Kiritanport
             get
             {
                 int cnt = 0;
-                foreach (PhraseView curr in Items)
+                foreach (PhraseEditView curr in Items)
                 {
                     if (curr.Check.IsChecked == true && curr.Wave is null && curr.Text.Text.Length > 0)
                     {
@@ -227,7 +227,7 @@ namespace Kiritanport
             get
             {
                 int cnt = 0;
-                foreach (PhraseView curr in Items)
+                foreach (PhraseEditView curr in Items)
                 {
                     if (curr.Check.IsChecked == true && curr.Text.Text.Length > 0)
                     {
@@ -245,8 +245,58 @@ namespace Kiritanport
         {
             base.Focus();
 
-            (SelectedItem as PhraseView)?.Text.Focus();
+            (SelectedItem as PhraseEditView)?.Text.Focus();
         }
+
+        /// <summary>
+        /// success,failedに指定した色で約1秒間テキストボックスの色が変わる
+        /// failedがnullの場合、AIKanaが取得できない場合でもCheckが入っているフレーズの文章を取得するが、
+        /// 取得できない場合のkanaは空(="")になる。
+        /// </summary>
+        /// <param name="success"></param>
+        /// <param name="failed"></param>
+        /// <returns></returns>
+        public List<(string text, string kana, TDialect dialect)> GetCheckedPhraseKana(Brush success, Brush? failed)
+        {
+            List<(string text, string kana, TDialect dialect)> result = new();
+
+            foreach (PhraseEditView item in Items)
+            {
+                if (item.Check.IsChecked == true)
+                {
+                    string text = item.Text.Text;
+
+                    if (text.Split(CustomPauseMark).Length >= 2)
+                    {
+                        if (int.TryParse(text.Split(CustomPauseMark).Last(), out int _))
+                        {
+                            text = text[..^(text.Split(CustomPauseMark).Last().Length + CustomPauseMark.Length)];
+                        }
+                    }
+
+                    if (text.Length > 0 && item.Kana.Text.Length > 0 && item.Preset is not null)
+                    {
+                        result.Add((text, item.Kana.AIKana, item.Preset.Dialect));
+                        item.Notice(success, 1000);
+                    }
+                    else
+                    {
+                        if (failed is not null)
+                        {
+                            item.Notice(failed, 1000);
+                        }
+                        else if (text.Length > 0 && item.Preset is not null)
+                        {
+                            result.Add((text, "", item.Preset.Dialect));
+                            item.Notice(success, 1000);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public void SaveWaves(object sender, MyEventArgs e)
         {
             SpeechEnd -= SaveWaves;
@@ -258,7 +308,7 @@ namespace Kiritanport
 
             Waves? waves = null;
 
-            foreach (PhraseView curr in Items)
+            foreach (PhraseEditView curr in Items)
             {
                 if (curr.Check.IsChecked != true)
                 {
@@ -314,7 +364,7 @@ namespace Kiritanport
 
         public void Speech(string text)
         {
-            if (SelectedItem is not PhraseView item)
+            if (SelectedItem is not PhraseEditView item)
             {
                 return;
             }
@@ -322,6 +372,11 @@ namespace Kiritanport
             if (item.Presets.SelectedItem is ComboBoxItem citem
                 && citem.Content is VoicePreset preset)
             {
+                SpeechBegin?.Invoke(this, new MyEventArgs());
+                processing = true;
+                notice = true;
+                preset.LongPause = PauseLong;
+                preset.MiddlePause = PauseShort;
 
                 string param = JsonSerializer.Serialize(preset);
                 /*
@@ -337,7 +392,6 @@ namespace Kiritanport
                 APIManager.WaveReceived += APIManager_WaveReceived;
                 APIManager.Speech(citem.DataContext, text);
 
-                SpeechBegin?.Invoke(this, new MyEventArgs());
             }
             else
             {
@@ -347,7 +401,7 @@ namespace Kiritanport
         bool notice = false;
         public void SpeechSelected()
         {
-            if (SelectedItem is PhraseView sel)
+            if (SelectedItem is PhraseEditView sel)
             {
                 notice = true;
                 SpeechPhrase(sel, true);
@@ -358,7 +412,7 @@ namespace Kiritanport
         {
             get
             {
-                if (SelectedItem is PhraseView sel)
+                if (SelectedItem is PhraseEditView sel)
                 {
                     return (sel.Text.Text, sel.Wave);
                 }
@@ -367,7 +421,7 @@ namespace Kiritanport
         }
 
         bool wave_only = false;
-        private void SpeechPhrase(PhraseView item, bool with_sound)
+        private void SpeechPhrase(PhraseEditView item, bool with_sound)
         {
             if (item.Text.Text.Length == 0)
             {
@@ -383,6 +437,8 @@ namespace Kiritanport
                 item.IsSelected = true;
                 SpeechData speech = new();
 
+                preset.LongPause = PauseLong;
+                preset.MiddlePause = PauseShort;
                 string param = JsonSerializer.Serialize(preset);
                 /*
                 string param = "";
@@ -457,7 +513,7 @@ namespace Kiritanport
                 OnSpeech?.Invoke(this, new MyEventArgs() { Data = speech });
             }
         }
-        private bool SpeechPhraseFromCache(PhraseView item)
+        private bool SpeechPhraseFromCache(PhraseEditView item)
         {
             if (item.Wave is null)
             {
@@ -488,7 +544,7 @@ namespace Kiritanport
 
             Task.Factory.StartNew(async () =>
             {
-                foreach (PhraseView item in Items)
+                foreach (PhraseEditView item in Items)
                 {
                     if (ctsource.Token.IsCancellationRequested)
                     {
@@ -515,15 +571,15 @@ namespace Kiritanport
 
                     if ("。！？♪".Contains(text[^1]))
                     {
-                        silence = 800;
+                        silence = PauseSentence;
                     }
                     else if ('、' == text[^1])
                     {
-                        silence = 370;
+                        silence = PauseLong;
                     }
                     else
                     {
-                        silence = 150;
+                        silence = PauseShort;
                     }
 
                     if (text.Split(CustomPauseMark).Length >= 2)
@@ -576,7 +632,7 @@ namespace Kiritanport
         }
 
         private bool prev_speech = false;
-        private PhraseView? received_item;
+        private PhraseEditView? received_item;
         private void MainWindow_KanaReceived(object sender, MyEventArgs e)
         {
             APIManager.KanaReceived -= MainWindow_KanaReceived;
@@ -584,6 +640,7 @@ namespace Kiritanport
             if (received_item is not null && e.Data is string text && text.Length > 0)
             {
                 received_item.Kana.SetAIKANA(text);
+                received_item.Notice(Brushes.LightBlue);
                 if (prev_speech)
                 {
                     APIManager.Speech((received_item.Presets.SelectedItem as ComboBoxItem)?.DataContext, text);
@@ -646,14 +703,14 @@ namespace Kiritanport
         {
             bindlist.Add((preset, binding));
 
-            foreach (PhraseView item in Items)
+            foreach (PhraseEditView item in Items)
             {
                 ComboBoxItem item_dst = new() { Content = preset, Focusable = false };
                 item_dst.SetBinding(DataContextProperty, binding);
 
                 item.Presets.Items.Add(item_dst);
             }
-            foreach (PhraseView item in Stocks)
+            foreach (PhraseEditView item in Stocks)
             {
                 ComboBoxItem item_dst = new() { Content = preset, Focusable = false };
                 item_dst.SetBinding(DataContextProperty, binding);
@@ -663,7 +720,7 @@ namespace Kiritanport
         }
         public bool RemovePreset(VoicePreset preset)
         {
-            foreach (PhraseView item in Items)
+            foreach (PhraseEditView item in Items)
             {
                 if (item.Preset == preset)
                 {
@@ -671,11 +728,11 @@ namespace Kiritanport
                 }
             }
 
-            foreach (PhraseView item in Items)
+            foreach (PhraseEditView item in Items)
             {
                 item.Presets.Items.Remove(item.Presets.Items.Cast<ComboBoxItem>().First(x => x.Content == preset));
             }
-            foreach (PhraseView item in Stocks)
+            foreach (PhraseEditView item in Stocks)
             {
                 item.Presets.Items.Remove(item.Presets.Items.Cast<ComboBoxItem>().First(x => x.Content == preset));
             }
@@ -684,7 +741,7 @@ namespace Kiritanport
         }
         public void MovePreset(VoicePreset preset, int index_dst)
         {
-            foreach (PhraseView phrase in Items)
+            foreach (PhraseEditView phrase in Items)
             {
                 var item = phrase.Presets.Items.Cast<ComboBoxItem>().First(x => x.Content == preset);
                 bool selected = item.IsSelected;
@@ -708,7 +765,7 @@ namespace Kiritanport
         /// <param name="index"></param>
         public void RenamePreset(int index)
         {
-            foreach (PhraseView item in Items)
+            foreach (PhraseEditView item in Items)
             {
                 if (item.Presets.Items[index] is ComboBoxItem citem)
                 {
@@ -723,7 +780,7 @@ namespace Kiritanport
                     item.Presets.SelectedIndex = index;
                 }
             }
-            foreach (PhraseView item in Stocks)
+            foreach (PhraseEditView item in Stocks)
             {
                 if (item.Presets.Items[index] is ComboBoxItem citem)
                 {
@@ -750,11 +807,11 @@ namespace Kiritanport
                 return;
             }
 
-            PhraseView dst = CreatePhraseView();
+            PhraseEditView dst = CreatePhraseView();
             dst.IsFocusOnLoadead = focus;
             if (Items.Count > 0)
             {
-                if (Items[^1] is PhraseView src)
+                if (Items[^1] is PhraseEditView src)
                 {
                     dst.Presets.SelectedIndex = src.Presets.SelectedIndex;
                 }
@@ -769,7 +826,7 @@ namespace Kiritanport
         }
         public void RemovePhraseLine(bool focus)
         {
-            if (SelectedItem is PhraseView phrase)
+            if (SelectedItem is PhraseEditView phrase)
             {
                 if (focus)
                 {
@@ -788,10 +845,10 @@ namespace Kiritanport
                 return;
             }
 
-            PhraseView dst = CreatePhraseView();
+            PhraseEditView dst = CreatePhraseView();
             dst.IsFocusOnLoadead = focus;
 
-            if (SelectedItem is PhraseView src)
+            if (SelectedItem is PhraseEditView src)
             {
                 dst.Presets.SelectedIndex = src.Presets.SelectedIndex;
             }
@@ -806,28 +863,28 @@ namespace Kiritanport
 
         public void EditPhraseLine()
         {
-            if (SelectedItem is PhraseView src)
+            if (SelectedItem is PhraseEditView src)
             {
-                if (src.IsAccentVisible)
+                if (src.AccentVisible)
                 {
-                    src.IsAccentVisible = false;
+                    src.AccentVisible = false;
                 }
                 else
                 {
-                    src.IsAccentVisible = true;
+                    src.AccentVisible = true;
                 }
             }
         }
 
-        private readonly Queue<PhraseView> Stocks = new();
-        private PhraseView CreatePhraseView()
+        private readonly Queue<PhraseEditView> Stocks = new();
+        private PhraseEditView CreatePhraseView()
         {
             if (Stocks.Count > 0)
             {
                 return Stocks.Dequeue();
             }
 
-            PhraseView phrase = new();
+            PhraseEditView phrase = new();
 
             phrase.Text.SelectionChanged += (sender, e) =>
             {
@@ -861,6 +918,7 @@ namespace Kiritanport
             if (Parent is Grid parent)
             {
                 parent.Children.Add(phrase.Kana);
+                parent.Children.Add(phrase.SearchResult);
             }
             return phrase;
         }

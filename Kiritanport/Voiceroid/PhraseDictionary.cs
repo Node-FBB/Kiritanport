@@ -161,6 +161,15 @@ namespace Kiritanport.Voiceroid
             return result;
         }
 
+        public string? GetPhraseKana(string text)
+        {
+            if (dictionary.ContainsKey(text))
+            {
+                return dictionary[text].AIKana;
+            }
+            return null;
+        }
+
         public void Save()
         {
             Save(PathDic);

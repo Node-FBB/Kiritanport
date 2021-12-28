@@ -9,7 +9,7 @@ using System.Windows.Media;
 
 namespace Kiritanport.SubControls
 {
-    internal class AccentView : Grid
+    internal class AccentEditView : Grid
     {
         public new bool IsFocused => kana.IsFocused;
         public bool IsEmpty => kana.Text.Length == 0;
@@ -91,7 +91,7 @@ namespace Kiritanport.SubControls
             public char Char;
         }
 
-        public AccentView()
+        public AccentEditView()
         {
             kana = new TextBox()
             {

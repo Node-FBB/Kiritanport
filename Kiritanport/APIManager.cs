@@ -25,9 +25,9 @@ namespace Kiritanport
         private static readonly Dictionary<string, Process> apis = new();
         public static bool IsInit { get; private set; } = false;
 
-        public static Process? VoiceroidAPI => IsInit ? apis["VR"] : null;
-        public static Process? VoicevoxAPI => IsInit ? apis["VV"] : null;
-        public static Process? AssistantSeikaAPI => IsInit ? apis["AS"] : null;
+        public static Process? VoiceroidAPI => IsInit && !apis["VR"].HasExited ? apis["VR"] : null;
+        public static Process? VoicevoxAPI => IsInit && !apis["VV"].HasExited ? apis["VV"] : null;
+        public static Process? AssistantSeikaAPI => IsInit && !apis["AS"].HasExited ? apis["AS"] : null;
         public static string Log { get; private set; } = "";
 
         public static int RunningAPIsCount
@@ -80,9 +80,9 @@ namespace Kiritanport
             apis["AS"] = new Process();
 
 
-            apis["VR"].StartInfo.FileName = @"..\..\..\..\VoiceroidAPI\bin\Debug\VoiceroidAPI.exe";
-            apis["VV"].StartInfo.FileName = @"..\..\..\..\VoicevoxAPI\bin\Debug\net6.0\VoicevoxAPI.exe";
-            apis["AS"].StartInfo.FileName = @"..\..\..\..\AssistantSeikaAPI\bin\Debug\AssistantSeikaAPI.exe";
+            apis["VR"].StartInfo.FileName = @"..\..\..\..\CLIVoiceroid\bin\Debug\CLIVoiceroid.exe";
+            apis["VV"].StartInfo.FileName = @"..\..\..\..\CLIVoicevox\bin\Debug\net6.0\CLIVoicevox.exe";
+            apis["AS"].StartInfo.FileName = @"..\..\..\..\CLIAssistantSeika\bin\Debug\CLIAssistantSeika.exe";
 
             StreamReader reader = new(@".\settings.ini");
             while (reader.ReadLine() is string str)
@@ -145,7 +145,6 @@ namespace Kiritanport
         {
             if (e.Data != null && sender is Process process)
             {
-                MessageReceived?.Invoke(sender, new MyEventArgs() { Data = e.Data });
 
                 if (GetKey(sender) is string key)
                 {
@@ -154,6 +153,7 @@ namespace Kiritanport
 #endif
                     Log += $"{key}:{e.Data}\n";
                 }
+                MessageReceived?.Invoke(sender, new MyEventArgs() { Data = e.Data });
 
                 if (process?.HasExited == true)
                 {

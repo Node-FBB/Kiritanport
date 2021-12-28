@@ -3,18 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CLIVoicevox", "VoicevoxAPI\CLIVoicevox.csproj", "{71BA4CAF-581B-4215-978B-D173B8A48980}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kiritanport", "Kiritanport\Kiritanport.csproj", "{AA80AA17-193E-48C3-BDCB-457C6FA2B4DD}"
 	ProjectSection(ProjectDependencies) = postProject
-		{71BA4CAF-581B-4215-978B-D173B8A48980} = {71BA4CAF-581B-4215-978B-D173B8A48980}
+		{43172169-286D-4E3F-A112-17008D937EEE} = {43172169-286D-4E3F-A112-17008D937EEE}
 		{EEE0CEB4-658F-4EC5-A9B1-CE91B17EBAA5} = {EEE0CEB4-658F-4EC5-A9B1-CE91B17EBAA5}
 		{90DE7ED5-7527-4D09-AE06-ED7783A64415} = {90DE7ED5-7527-4D09-AE06-ED7783A64415}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLIVoiceroid", "VoiceroidAPI\CLIVoiceroid.csproj", "{90DE7ED5-7527-4D09-AE06-ED7783A64415}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLIVoiceroid", "CLIVoiceroid\CLIVoiceroid.csproj", "{90DE7ED5-7527-4D09-AE06-ED7783A64415}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLIAssistantSeika", "AssistantSeikaAPI\CLIAssistantSeika.csproj", "{EEE0CEB4-658F-4EC5-A9B1-CE91B17EBAA5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLIAssistantSeika", "CLIAssistantSeika\CLIAssistantSeika.csproj", "{EEE0CEB4-658F-4EC5-A9B1-CE91B17EBAA5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CLIVoicevox", "CLIVoicevox\CLIVoicevox.csproj", "{43172169-286D-4E3F-A112-17008D937EEE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,10 +22,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{71BA4CAF-581B-4215-978B-D173B8A48980}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{71BA4CAF-581B-4215-978B-D173B8A48980}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{71BA4CAF-581B-4215-978B-D173B8A48980}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{71BA4CAF-581B-4215-978B-D173B8A48980}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AA80AA17-193E-48C3-BDCB-457C6FA2B4DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AA80AA17-193E-48C3-BDCB-457C6FA2B4DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA80AA17-193E-48C3-BDCB-457C6FA2B4DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -38,6 +34,10 @@ Global
 		{EEE0CEB4-658F-4EC5-A9B1-CE91B17EBAA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EEE0CEB4-658F-4EC5-A9B1-CE91B17EBAA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EEE0CEB4-658F-4EC5-A9B1-CE91B17EBAA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43172169-286D-4E3F-A112-17008D937EEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43172169-286D-4E3F-A112-17008D937EEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43172169-286D-4E3F-A112-17008D937EEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43172169-286D-4E3F-A112-17008D937EEE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
