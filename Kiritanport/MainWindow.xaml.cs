@@ -1,4 +1,5 @@
 ﻿using Kiritanport.Voiceroid;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,6 +19,8 @@ namespace Kiritanport
     public class Configure
     {
         public VoicePreset[] Presets { get; set; } = Array.Empty<VoicePreset>();
+        public string PathPhraseDictionary { get; set; } = @".\tmp\tmp.pdic";
+        public string PathWordDictionary { get; set; } = @".\tmp\tmp.wdic";
     }
 
     /// <summary>
@@ -41,8 +44,6 @@ namespace Kiritanport
         private Configure? configure;
 
         private const string PathConfigre = @".\configure.xml";
-        private const string PathWordDictionary = @".\test.wdic";
-        private const string PathPhraseDictionary = @".\test.pdic";
 
         private readonly List<(Label Label, VoiceParameterView Param)> StyleControls = new();
 
@@ -164,7 +165,7 @@ namespace Kiritanport
 
             if (CB_VoiceList.Items.Count == 0)
             {
-                MessageBox.Show("使用可能なボイスが見つかりませんでした。");
+                CustomMessageBox.Show(this, "使用可能なボイスが見つかりませんでした。");
                 return;
             }
 
@@ -623,7 +624,8 @@ namespace Kiritanport
                     }
                 }
             }
-            else
+
+            if (configure is null)
             {
                 //テスト用プリセット
                 for (int i = 0; i < 3 && i < CB_VoiceList.Items.Count; i++)
@@ -666,8 +668,8 @@ namespace Kiritanport
                 };
             }
 
-            WordDictionary wdic = new(@".\test.wdic");
-            PhraseDictionary pdic = new(@".\test.pdic");
+            WordDictionary wdic = new(configure.PathWordDictionary);
+            PhraseDictionary pdic = new(configure.PathPhraseDictionary);
 
             wdic_standard = wdic;
             wdic_kansai = wdic;
@@ -793,7 +795,7 @@ namespace Kiritanport
             }
             else
             {
-                MessageBoxResult result = MessageBox.Show(this, $"{cnt}個のフレーズ音声を合成します。よろしいですか？", "確認", MessageBoxButton.OKCancel);
+                MessageBoxResult result = CustomMessageBox.Show(this, $"{cnt}個のフレーズ音声を合成します。よろしいですか？", "確認", MessageBoxButton.OKCancel);
 
                 if (result == MessageBoxResult.OK)
                 {
@@ -845,11 +847,11 @@ namespace Kiritanport
         {
             if (APIManager.Log.Length > 1024)
             {
-                MessageBox.Show(APIManager.Log[^1024..], "APIs Log");
+                CustomMessageBox.Show(this, APIManager.Log[^1024..], "APIs Log");
             }
             else
             {
-                MessageBox.Show(APIManager.Log, "APIs Log");
+                CustomMessageBox.Show(this, APIManager.Log, "APIs Log");
             }
         }
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
@@ -1134,7 +1136,7 @@ namespace Kiritanport
                 }
                 else
                 {
-                    MessageBox.Show("リストで使用中のボイスプリセットは削除できません");
+                    CustomMessageBox.Show(this, "フレーズ一覧で使用中のボイスプリセットは削除できません");
                 }
             }
         }
@@ -1197,5 +1199,130 @@ namespace Kiritanport
             configure.Presets = dst.ToArray();
         }
 
+        private void MenuItem_CreateNewClick(object sender, RoutedEventArgs e)
+        {
+            CommonOpenFileDialog dialog = new()
+            {
+                Title = "新規作成",
+                RestoreDirectory = true,
+            };
+            dialog.Filters.Add(new CommonFileDialogFilter("フレーズ辞書ファイル", "*.pdic"));
+            dialog.Filters.Add(new CommonFileDialogFilter("全てのファイル", "*.*"));
+
+            // ダイアログを表示する
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                string tmp = Path.GetFullPath(@".\tmp");
+
+                if (Path.GetFullPath(dialog.FileName).Contains(tmp))
+                {
+                    CustomMessageBox.Show(this, "tmpフォルダの内容はアプリ終了時に削除されるため、他の場所を選択してください", "通知");
+                    return;
+                }
+
+                if (File.Exists(dialog.FileName))
+                {
+                    if (CustomMessageBox.Show(this, "既にファイルが存在します。上書きしますか？", "確認", MessageBoxButton.OKCancel) == MessageBoxResult.Cancel)
+                    {
+                        return;
+                    }
+                }
+
+                if (configure is not null)
+                {
+                    configure.PathPhraseDictionary = dialog.FileName;
+
+                    if (File.Exists(configure.PathPhraseDictionary))
+                    {
+                        File.Delete(configure.PathPhraseDictionary);
+                    }
+
+                    pdic_standard = new PhraseDictionary(configure.PathPhraseDictionary);
+                    pdic_standard.Save();
+                    pdic_kansai = pdic_standard;
+                    UpdatePdic(false, true);
+                }
+            }
+            dialog.Dispose();
+        }
+
+        private void MenuItem_OpenClick(object sender, RoutedEventArgs e)
+        {
+
+            CommonOpenFileDialog dialog = new()
+            {
+                Title = "フォルダを選択してください",
+                IsFolderPicker = true,
+            };
+
+            dialog.Filters.Add(new CommonFileDialogFilter("フレーズ辞書ファイル", "*.pdic"));
+            dialog.Filters.Add(new CommonFileDialogFilter("全てのファイル", "*.*"));
+
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                if (configure is not null)
+                {
+                    configure.PathPhraseDictionary = dialog.FileName;
+
+                    pdic_standard = new PhraseDictionary(configure.PathPhraseDictionary);
+                    pdic_kansai = pdic_standard;
+                    UpdatePdic(false, true);
+                }
+            }
+
+            dialog.Dispose();
+        }
+        private void MenuItem_CloseClick(object sender, RoutedEventArgs e)
+        {
+            if (configure is not null)
+            {
+                if (configure.PathPhraseDictionary == @".\tmp\tmp.pdic")
+                {
+                    if (CustomMessageBox.Show(this, "現在のフレーズ辞書内容はすべて破棄されますがよろしいですか？", "確認", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
+                    {
+                        File.Delete(configure.PathPhraseDictionary);
+                        pdic_standard = new PhraseDictionary(configure.PathPhraseDictionary);
+                        pdic_kansai = pdic_standard;
+
+                        UpdatePdic(true, true);
+                    }
+                }
+                else
+                {
+                    configure.PathPhraseDictionary = @".\tmp\tmp.pdic";
+                    if (File.Exists(configure.PathPhraseDictionary))
+                    {
+                        File.Delete(configure.PathPhraseDictionary);
+                    }
+
+                    pdic_standard = new PhraseDictionary(configure.PathPhraseDictionary);
+                    pdic_kansai = pdic_standard;
+
+                    UpdatePdic(true, true);
+                }
+            }
+        }
+
+        private void MenuItem_SaveClick(object sender, RoutedEventArgs e)
+        {
+            CommonOpenFileDialog dialog = new()
+            {
+                Title = "新規作成",
+                RestoreDirectory = true,
+            };
+            dialog.Filters.Add(new CommonFileDialogFilter("フレーズ辞書ファイル", "*.pdic"));
+            dialog.Filters.Add(new CommonFileDialogFilter("全てのファイル", "*.*"));
+
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                if (configure is not null)
+                {
+                    configure.PathPhraseDictionary = dialog.FileName;
+                    pdic_standard?.Save(configure.PathPhraseDictionary);
+                }
+            }
+
+            dialog.Dispose();
+        }
     }
 }

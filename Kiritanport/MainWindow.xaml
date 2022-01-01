@@ -15,35 +15,35 @@
             </Label>
             <Menu VerticalAlignment="Top" Margin="25,0,0,0" Height="25" HorizontalAlignment="Left" Background="{x:Null}">
                 <MenuItem Header="ファイル(_F)" Margin="0,3,0,0" Height="18">
-                    <MenuItem Header="新規作成(_N)"/>
-                    <MenuItem Header="開く(_O)"/>
+                    <MenuItem Header="新規作成(_N)" Click="MenuItem_CreateNewClick"/>
+                    <MenuItem Header="開く(_O)" Click="MenuItem_OpenClick"/>
                     <Separator/>
-                    <MenuItem Header="閉じる(_C)"/>
+                    <MenuItem Header="閉じる(_C)" Click="MenuItem_CloseClick"/>
                     <Separator/>
-                    <MenuItem Header="上書き保存(_S)" InputGestureText="Ctrl+S"/>
-                    <MenuItem Header="名前を付けて保存(_A)"/>
+                    <MenuItem Header="上書き保存(_S)" InputGestureText="自動" IsEnabled="False"/>
+                    <MenuItem Header="名前を付けて保存(_A)" Click="MenuItem_SaveClick"/>
                     <Separator/>
                     <MenuItem Header="終了(_X)" InputGestureText="Alt+F4" Click="Close_Click"/>
                 </MenuItem>
                 <MenuItem Header="編集(_E)" Height="18" Margin="0,3,0,0">
-                    <MenuItem Header="アクセント編集(_A)" InputGestureText="Ctrl+Space"/>
-                    <MenuItem Header="アクセント破棄(_D)" InputGestureText="Esc"/>
+                    <MenuItem Header="アクセント編集(_A)" InputGestureText="Ctrl+Space" IsEnabled="False"/>
+                    <MenuItem Header="アクセント破棄(_D)" InputGestureText="Esc" IsEnabled="False"/>
                 </MenuItem>
                 <MenuItem Header="表示(_V)" Height="18" Margin="0,3,0,0">
-                    <MenuItem Header="単語辞書(_W)"/>
-                    <MenuItem Header="フレーズ辞書(_P)" InputGestureText="Ctrl+Space"/>
+                    <MenuItem Header="単語辞書(_W)" IsEnabled="False"/>
+                    <MenuItem Header="フレーズ辞書(_P)" InputGestureText="Ctrl+Space" IsEnabled="False"/>
                 </MenuItem>
                 <MenuItem Header="ツール(_T)" Height="18" Margin="0,3,0,0">
-                    <MenuItem Header="オプション(_O)"/>
+                    <MenuItem Header="オプション(_O)" IsEnabled="False"/>
                     <Separator/>
-                    <MenuItem Header="設定の初期化"/>
+                    <MenuItem Header="設定の初期化" IsEnabled="False"/>
                 </MenuItem>
                 <MenuItem Header="ヘルプ(_H)" Height="18" Margin="0,3,0,0" InputGestureText="Alt+F4">
-                    <MenuItem Header="ヘルプの表示(_V)" InputGestureText="F1"/>
+                    <MenuItem Header="ヘルプの表示(_V)" InputGestureText="F1" IsEnabled="False"/>
                     <Separator/>
-                    <MenuItem Header="更新確認(_U)"/>
+                    <MenuItem Header="更新確認(_U)" IsEnabled="False"/>
                     <Separator/>
-                    <MenuItem Header="バージョン情報(_A)"/>
+                    <MenuItem Header="バージョン情報(_A)" IsEnabled="False"/>
                 </MenuItem>
             </Menu>
             <TextBlock x:Name="BT_Minimize" TextWrapping="Wrap" Text="－" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,50,0" Width="50" Height="25" TextAlignment="Center" Padding="0,7,0,0" MouseEnter="BT_Minimize_MouseEnter" MouseLeave="BT_Minimize_MouseLeave" FontFamily="MS Gothic">
