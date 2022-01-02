@@ -3,6 +3,15 @@
 ### 注意事項
 未完成です<br>
 マニュアルを含むドキュメントも未整備です<br>
+<br>
+・本ツールの動作には「VOICEROID2」「VOICEVOX」「AssistantSeika（及び対応している合成音声ソフト）」の内、最低でも1つ以上の外部ツールが必要です。<br>
+・「VOICEROID2」は本ツール起動前及び起動中に「起動しない」でください。<br>
+・「VOICEVOX」及び「AssistantSeika」は本ツール起動前に「起動しておいて」ください。<br>
+・「VOICEROID2」のインストール場所をデフォルトから変更している場合、「settings.ini」ファイルを編集が必要です。<br>
+・「フレーズ辞書」機能は「VOICEROID2」および「VOICEVOX」で利用可能です。<br>
+・「単語辞書」機能の利用には「VOICEROID2」が必要です。<br>
+（VOICEVOXで単語辞書を利用する場合は、使用する辞書をDefaultからVoiceroidへ変更してください）<br>
+・「AssistantSeika」の設定で基本設定タブの「16bitのwavファイルを使用」及び「前後の無音部分削除」を選択してください。<br>
 ### 入手
 https://github.com/Node-FBB/Kiritanport/releases
 ### マニュアル
@@ -10,9 +19,7 @@ https://github.com/Node-FBB/Kiritanport/wiki
 ### 更新履歴
 0.3.0　テスト版公開<br>
 <br>
-諸事情により公開停止<br>
-<br>
-0.1.1　デスクトップマスコット機能追加<br>
+0.1.1　デスクトップマスコット機能追加（諸事情により公開停止）<br>
 0.1.0　UI操作からAPI操作へ切替<br>
 <br>
 0.0.5　フレームワーク変更、バグ修正<br>
@@ -29,7 +36,7 @@ https://www.ah-soft.com<br>
 VOICEVOX音声の利用に必要<br>
 https://voicevox.hiroshiba.jp<br>
 #### AssistantSeika
-多数の合成音声ソフトから音声を取得できます（アクセント等の調整はできません）<br>
+対応している多数の合成音声ソフトから音声を取得できます（アクセント等の変更はできません）<br>
 https://hgotoh.jp/wiki/doku.php/start<br>
 ### 外部ツール（連携）
 #### AviUtl
