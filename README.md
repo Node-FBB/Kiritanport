@@ -31,22 +31,19 @@ https://github.com/Node-FBB/Kiritanport/wiki
 0.0.1　公開<br>
 ### 外部ツール（必須）
 本ツールの動作には以下3つのうち、少なくとも1つ以上の外部ツールが必要となります
-#### VOICEROID2
+#### [VOICEROID2](https://www.ah-soft.com)
 VOICEROID音声の利用に必要（EXおよびEX+は不可、VOICEROID2にボイスライブラリをインポートすれば可）<br>
-https://www.ah-soft.com<br>
-#### VOICEVOX
+#### [VOICEVOX](https://voicevox.hiroshiba.jp)
 VOICEVOX音声の利用に必要<br>
-https://voicevox.hiroshiba.jp<br>
-#### AssistantSeika
+#### [AssistantSeika](https://hgotoh.jp/wiki/doku.php/start)
 対応している多数の合成音声ソフトから音声を取得できます（アクセント等の変更はできません）<br>
-https://hgotoh.jp/wiki/doku.php/start<br>
 ### 外部ツール（連携）
 #### [AviUtl](http://spring-fragrance.mints.ne.jp/aviutl/)
 #### [PSDToolKit](https://oov.github.io/aviutl_psdtoolkit/index.html)
 ### 使用ライブラリ
-#### [Codeer.Friendly](https://github.com/Codeer-Software/Friendly)  - MIT License
-#### [NAudio](https://github.com/naudio/NAudio)  - Apache License 2.0
-#### [ITalk Liblary](https://www.ai-j.jp) - Need a License (and Non-Commercial use)
+#### [Codeer.Friendly](https://github.com/Codeer-Software/Friendly)  - MIT License (ver 0.0.xで使用)
+#### [NAudio](https://github.com/naudio/NAudio)  - Apache License 2.0 (ver 0.0.xで使用)
+#### [AITalk Liblary](https://www.ai-j.jp) - Need a License (and Non-Commercial use)
 
 ### 謝辞
 本ツールの作成に当たって以下の方々の公開してくださっているツールやコードを利用させていただきました<br>
