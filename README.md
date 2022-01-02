@@ -21,7 +21,7 @@ https://github.com/Node-FBB/Kiritanport/wiki
 0.0.2　フレーズ調声機能追加<br>
 0.0.1　公開<br>
 ### 外部ツール（必須）
-本ツールの動作には以下3つのうち、最低でも1つの外部ツールが必要となります
+本ツールの動作には以下3つのうち、少なくとも1つ以上の外部ツールが必要となります
 #### VOICEROID2
 VOICEROID2音声の利用に必要（EXおよびEX+は不可、VOICEROID2にボイスライブラリをインポートすれば可）<br>
 https://www.ah-soft.com<br>
