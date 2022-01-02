@@ -23,7 +23,7 @@ https://github.com/Node-FBB/Kiritanport/wiki
 ### 外部ツール（必須）
 本ツールの動作には以下3つのうち、最低でも1つの外部ツールが必要となります
 #### VOICEROID2
-VOICEROID2音声の利用に必要<br>
+VOICEROID2音声の利用に必要（EXおよびEX+は不可、VOICEROID2にボイスライブラリをインポートすれば可）<br>
 https://www.ah-soft.com<br>
 #### VOICEVOX
 VOICEVOX音声の利用に必要<br>
