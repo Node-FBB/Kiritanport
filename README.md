@@ -16,7 +16,7 @@
 ・「AssistantSeika」の設定で基本設定タブの「16bitのwavファイルを使用」及び「前後の無音部分削除」を選択してください。<br>
 ### 入手
 https://github.com/Node-FBB/Kiritanport/releases
-### マニュアル
+### 使い方
 https://github.com/Node-FBB/Kiritanport/wiki
 ### 更新履歴
 0.3.0　テスト版公開<br>
