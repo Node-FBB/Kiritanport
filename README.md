@@ -41,8 +41,8 @@ https://voicevox.hiroshiba.jp<br>
 対応している多数の合成音声ソフトから音声を取得できます（アクセント等の変更はできません）<br>
 https://hgotoh.jp/wiki/doku.php/start<br>
 ### 外部ツール（連携）
-#### AviUtl
-#### PSDToolKit
+#### [AviUtl](http://spring-fragrance.mints.ne.jp/aviutl/)
+#### [PSDToolKit](https://oov.github.io/aviutl_psdtoolkit/index.html)
 ### 使用ライブラリ
 #### [Codeer.Friendly](https://github.com/Codeer-Software/Friendly)  - MIT License
 #### [NAudio](https://github.com/naudio/NAudio)  - Apache License 2.0
