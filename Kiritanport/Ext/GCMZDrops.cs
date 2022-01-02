@@ -46,26 +46,30 @@ namespace Kiritanport.Ext
 
         private static GCMZDropsData? Init()
         {
+            if (!IsEnable)
+            {
+                return null;
+            }
+
             try
             {
-                var mut = Mutex.OpenExisting("GCMZDropsMutex");
+                using Mutex mut = Mutex.OpenExisting("GCMZDropsMutex");
                 try
                 {
-                    var mmf = MemoryMappedFile.OpenExisting("GCMZDrops");
-
+                    using MemoryMappedFile mmf = MemoryMappedFile.OpenExisting("GCMZDrops");
                     mut.WaitOne();
 
-                    var stream = mmf.CreateViewStream();
+                    MemoryMappedViewStream? stream = mmf.CreateViewStream();
 
                     byte[] buf = new byte[Marshal.SizeOf<GCMZDropsData>()];
                     stream.Read(buf, 0, Marshal.SizeOf<GCMZDropsData>());
 
                     mut.ReleaseMutex();
 
-                    var ptr = Marshal.AllocCoTaskMem(Marshal.SizeOf<GCMZDropsData>());
+                    IntPtr ptr = Marshal.AllocCoTaskMem(Marshal.SizeOf<GCMZDropsData>());
                     Marshal.Copy(buf, 0, ptr, Marshal.SizeOf<GCMZDropsData>());
 
-                    var data = new GCMZDropsData();
+                    GCMZDropsData data = new();
                     Marshal.PtrToStructure(ptr, data);
 
                     Marshal.FreeCoTaskMem(ptr);
@@ -106,8 +110,8 @@ namespace Kiritanport.Ext
         //　Unicode文字列をUTF8エンコードに変換する
         private static byte[] ToUTF8(string uni_str)
         {
-            var uni_bytes = Encoding.Unicode.GetBytes(uni_str);
-            var utf8_bytes = Encoding.Convert(Encoding.Unicode, Encoding.UTF8, uni_bytes);
+            byte[] uni_bytes = Encoding.Unicode.GetBytes(uni_str);
+            byte[] utf8_bytes = Encoding.Convert(Encoding.Unicode, Encoding.UTF8, uni_bytes);
             return utf8_bytes;
         }
         public static string? ProjectPath
@@ -117,9 +121,11 @@ namespace Kiritanport.Ext
                 return Init()?.ProjectPath;
             }
         }
+        public static bool IsEnable { set; get; } = true;
+        public static bool IsUsable => Init()?.Width > 0;//nullとの比較は常にfalseになる
         public static bool SendFiles(List<string> files, double time_ms, int layer)
         {
-            var data = Init();
+            GCMZDropsData? data = Init();
 
             if (data == null || data.Width == 0)
             {

@@ -35,6 +35,7 @@ namespace Kiritanport
         public int PauseLong { set; get; } = 370;
         public int PauseSentence { set; get; } = 800;
         public string CustomPauseMark { set; get; } = "$";
+        public string OutputDir { set; get; } = "";
 
         public VoicePreset Preset { get; init; }
         private readonly List<Wave> waves = new();
@@ -98,7 +99,29 @@ namespace Kiritanport
                 return;
             }
 
-            if (Ext.GCMZDrops.ProjectPath is string proj_path && Directory.GetParent(proj_path) is DirectoryInfo proj_dir)
+            if (Directory.Exists(OutputDir))
+            {
+                string output_path = $@"{OutputDir}\{DateTime.Now.Ticks}";
+                File.WriteAllText(output_path + ".txt", Text, Encoding.GetEncoding("Shift_JIS"));
+                tmp.Save(output_path + ".wav");
+
+                if (Ext.GCMZDrops.IsUsable)
+                {
+                    List<string> files = new()
+                    {
+                        output_path + ".wav",
+                        output_path + ".txt",
+                    };
+                    int layer = 1;
+                    if (Preset.Num is int num)
+                    {
+                        layer = num;
+                    }
+
+                    Ext.GCMZDrops.SendFiles(files, tmp.PlayTime.TotalMilliseconds, layer);
+                }
+            }
+            else if (Ext.GCMZDrops.ProjectPath is string proj_path && Directory.GetParent(proj_path) is DirectoryInfo proj_dir)
             {
                 string output_path = $@"{proj_dir.FullName}\{DateTime.Now.Ticks}";
                 File.WriteAllText(output_path + ".txt", Text, Encoding.GetEncoding("Shift_JIS"));
@@ -142,6 +165,7 @@ namespace Kiritanport
         public bool AccentLock = false;
         public bool CustomPause = true;
         public string CustomPauseMark = "$";
+        public string OutputDir = "";
 
         public VoicePreset? Preset => (SelectedItem as PhraseEditView)?.Preset;
         public int? PresetIndex
@@ -240,6 +264,7 @@ namespace Kiritanport
         public int PauseShort { set; get; } = 150;
         public int PauseLong { set; get; } = 370;
         public int PauseSentence { set; get; } = 800;
+        public double MasterVolume { set; get; } = 1.0;
 
         public new void Focus()
         {
@@ -338,6 +363,7 @@ namespace Kiritanport
                         PauseLong = PauseLong,
                         PauseSentence = PauseSentence,
                         CustomPauseMark = CustomPauseMark,
+                        OutputDir = OutputDir,
                     };
                 }
 
@@ -351,6 +377,7 @@ namespace Kiritanport
                         PauseLong = PauseLong,
                         PauseSentence = PauseSentence,
                         CustomPauseMark = CustomPauseMark,
+                        OutputDir = OutputDir,
                     };
                 }
                 waves.Add(curr.Wave, curr.Text.Text);
@@ -398,6 +425,7 @@ namespace Kiritanport
                 processing = false;
             }
         }
+
         bool notice = false;
         public void SpeechSelected()
         {
@@ -405,6 +433,15 @@ namespace Kiritanport
             {
                 notice = true;
                 SpeechPhrase(sel, true);
+            }
+        }
+
+        public void GetSelectedWave()
+        {
+            if (SelectedItem is PhraseEditView sel)
+            {
+                notice = true;
+                SpeechPhrase(sel, false);
             }
         }
 
@@ -649,6 +686,7 @@ namespace Kiritanport
 
             prev_speech = false;
         }
+
         private void APIManager_WaveReceived(object sender, MyEventArgs e)
         {
             APIManager.WaveReceived -= APIManager_WaveReceived;
@@ -656,6 +694,12 @@ namespace Kiritanport
 
             if (e.Data is Wave wave)
             {
+
+                if(MasterVolume != 1.0)
+                {
+                    wave.Gain(MasterVolume);
+                }
+
                 if (received_item is not null)
                 {
                     received_item.Wave = wave;
@@ -667,7 +711,7 @@ namespace Kiritanport
                     processing = false;
                     if (notice)
                     {
-                        SpeechEnd?.Invoke(this, new MyEventArgs());
+                        SpeechEnd?.Invoke(this, new MyEventArgs() { Data = wave});
                         notice = false;
                     }
                 }

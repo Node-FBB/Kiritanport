@@ -35,7 +35,9 @@
                 </MenuItem>
                 <MenuItem Header="ツール(_T)" Height="18" Margin="0,3,0,0">
                     <MenuItem Header="オプション(_O)" IsEnabled="False"/>
+                    <MenuItem x:Name="MI_GCMZ" Header="ごちゃまぜドロップス連携(_G)" IsCheckable="True"/>
                     <Separator/>
+                    <MenuItem Header="音量を取得" Click="MI_CheckVolume_Click"/>
                     <MenuItem Header="設定の初期化" IsEnabled="False"/>
                 </MenuItem>
                 <MenuItem Header="ヘルプ(_H)" Height="18" Margin="0,3,0,0" InputGestureText="Alt+F4">
@@ -72,9 +74,9 @@
         <TextBlock TextWrapping="Wrap" Text="単語一覧" Margin="605,30,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20"/>
         <TextBlock TextWrapping="Wrap" Text="単語編集" Margin="605,295,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20"/>
         <local:PhraseList x:Name="PL_PhraseList" d:ItemsSource="{d:SampleData ItemCount=5}" Width="570" Height="210" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,50,0,0" Loaded="PL_PhraseList_Loaded"/>
-        <Button Content="再生" HorizontalAlignment="Left" Margin="240,265,0,0" VerticalAlignment="Top" Click="BT_Play_Click" Width="40" Focusable="False" Height="20"/>
-        <Button x:Name="BT_Stop" Content="停止" HorizontalAlignment="Left" Margin="290,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_Stop_Click" Height="20"/>
-        <Button Content="出力" HorizontalAlignment="Left" Margin="545,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_Output_Click" Height="20"/>
+        <Button Content="再生" HorizontalAlignment="Left" Margin="160,265,0,0" VerticalAlignment="Top" Click="BT_Play_Click" Width="40" Focusable="False" Height="20"/>
+        <Button x:Name="BT_Stop" Content="停止" HorizontalAlignment="Left" Margin="200,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_Stop_Click" Height="20"/>
+        <Button Content="出力" HorizontalAlignment="Left" Margin="545,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_Output_Click" Height="20" MouseRightButtonDown="Button_MouseRightButtonDown"/>
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,309,0,0" Orientation="Horizontal">
             <ComboBox x:Name="CB_PresetList" Width="90" SelectionChanged="CB_PresetList_SelectionChanged" Margin="15,0,0,0" VerticalAlignment="Center" Height="20"/>
             <Button x:Name="BT_UpPreset" Content="↑" Width="20" Height="20" Margin="10,0,0,0" Click="BT_UpPreset_Click" FontFamily="Yu Gothic UI"/>
@@ -118,7 +120,7 @@
                 <local:VoiceParameterView x:Name="VP_Style3" Minimum="0" VerticalAlignment="Center" Maximum="1" Value="0"/>
             </StackPanel>
         </StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="443,259,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+        <StackPanel Orientation="Horizontal" Margin="445,259,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
             <Label Content="番号" VerticalAlignment="Center" Width="40" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
             <local:VoiceParameterView x:Name="VP_Num" Minimum="1" VerticalAlignment="Center" LargeChange="1" Maximum="99" SmallChange="1"/>
         </StackPanel>
@@ -126,21 +128,21 @@
         <Button Content="削除" Margin="745,265,0,0" VerticalAlignment="Top" Click="BT_WordRemove_Click" Height="20" Width="40" HorizontalAlignment="Left"/>
         <TextBox x:Name="TB_WordText" Margin="605,315,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="20" HorizontalAlignment="Left" Width="180"/>
         <TextBox x:Name="TB_WordKana" Margin="605,340,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="20" HorizontalAlignment="Left" Width="180"/>
-        <Button Content="再生" Margin="695,390,0,0" VerticalAlignment="Top" Click="BT_WordPlay_Click" Height="20" Width="40" HorizontalAlignment="Left"/>
+        <Button Content="再生" Margin="705,390,0,0" VerticalAlignment="Top" Click="BT_WordPlay_Click" Height="20" Width="40" HorizontalAlignment="Left"/>
         <Button Content="保存" Margin="745,390,0,0" VerticalAlignment="Top" Click="BT_WordSave_Click" Height="20" Width="40" HorizontalAlignment="Left"/>
         <ComboBox x:Name="CB_WordClass" Margin="605,365,0,0" VerticalAlignment="Top" Height="20" HorizontalAlignment="Left" Width="180"/>
         <StatusBar VerticalAlignment="Bottom" MouseLeftButtonDown="StatusBar_MouseLeftButtonDown">
             <TextBlock x:Name="TB_Log" TextWrapping="Wrap"/>
         </StatusBar>
         <ComboBox x:Name="CB_AccentProviderList" HorizontalAlignment="Left" Margin="15,400,0,0" VerticalAlignment="Top" Width="120" Loaded="CB_AccentProviderList_Loaded" Height="20"/>
-        <CheckBox Content="Accent Lock" HorizontalAlignment="Left" Margin="15,265,0,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" Height="20"/>
+        <CheckBox Content="Accent Lock" HorizontalAlignment="Left" Margin="385,230,0,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" Height="20"/>
         <Button x:Name="BT_PhraseRemove" Content="ー" HorizontalAlignment="Left" Margin="555,230,0,0" VerticalAlignment="Top" Width="20" Height="20" Click="BT_PhraseRemove_Click" Focusable="False" FontFamily="Yu Gothic UI"/>
         <Button x:Name="BT_PhraseAdd" Content="＋" HorizontalAlignment="Left" Margin="535,230,0,0" VerticalAlignment="Top" Width="20" Height="20" Click="BT_PhraseAdd_Click" Focusable="False" FontFamily="Yu Gothic UI"/>
         <Button Content="編集" HorizontalAlignment="Left" Margin="485,230,0,0" VerticalAlignment="Top" Width="40" Height="20" Click="BT_PhraseEdit_Click" Focusable="False"/>
-        <CheckBox x:Name="CB_Cache" Content="Cache" HorizontalAlignment="Left" Margin="175,265,0,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Height="20"/>
+        <CheckBox x:Name="CB_Cache" Content="Cache" HorizontalAlignment="Left" Margin="90,265,0,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Height="20"/>
         <CheckBox x:Name="CB_All" Content="All / Reset" HorizontalAlignment="Left" Margin="510,30,0,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Height="20"/>
         <Border BorderBrush="Black" BorderThickness="1" d:IsHidden="True"/>
-        <Button Content="保存" HorizontalAlignment="Left" Margin="340,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_PhraseSave_Click" Height="20"/>
+        <Button Content="保存" HorizontalAlignment="Left" Margin="240,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_PhraseSave_Click" Height="20"/>
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,400,0,0" Orientation="Horizontal">
             <TextBlock TextWrapping="Wrap" Text="短ポーズ" Width="60" TextAlignment="Center" VerticalAlignment="Center" Margin="10,0,0,0"/>
             <TextBox x:Name="TB_PauseShort" TextWrapping="Wrap" Text="150" Width="40" Height="20" VerticalContentAlignment="Center"/>
@@ -149,7 +151,11 @@
             <TextBlock TextWrapping="Wrap" Text="末ポーズ" Width="60" TextAlignment="Center" VerticalAlignment="Center" Margin="10,0,0,0"/>
             <TextBox x:Name="TB_PauseSentence" TextWrapping="Wrap" Text="800" Width="40" Height="20" VerticalContentAlignment="Center"/>
         </StackPanel>
-        <Button Content="削除" HorizontalAlignment="Left" Margin="390,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_PhraseDelete_Click" Height="20"/>
+        <Button Content="削除" HorizontalAlignment="Left" Margin="280,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_PhraseDelete_Click" Height="20"/>
+        <StackPanel Orientation="Horizontal" Margin="340,259,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Label Content="主音量" VerticalAlignment="Center" Width="50" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
+            <local:VoiceParameterView x:Name="VP_Gain" VerticalAlignment="Center" LargeChange="0.1" Maximum="4" SmallChange="0.01"/>
+        </StackPanel>
 
     </Grid>
 </Window>

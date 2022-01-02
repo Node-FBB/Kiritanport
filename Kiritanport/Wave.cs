@@ -152,6 +152,84 @@ namespace Kiritanport
             Write(wavData.ToArray());
         }
 
+        public double GetMaxValue()
+        {
+            Position = DataOffset + 8;
+
+            byte[] buffer = new byte[DataLength];
+            Read(buffer, 0, buffer.Length);
+
+            short max = 0;
+
+            for(int i = 0; i < buffer.Length; i += 2)
+            {
+                short val = BitConverter.ToInt16(buffer, i);
+
+                val = Math.Abs(val);
+
+                if(max < val)
+                {
+                    max = val;
+                }
+            }
+
+            return (double)max / short.MaxValue;
+        }
+
+        public double GetAvarageValue()
+        {
+            Position = DataOffset + 8;
+
+            byte[] buffer = new byte[DataLength];
+            Read(buffer, 0, buffer.Length);
+
+            double ave = 0;
+
+            for (int i = 0; i < buffer.Length; i += 2)
+            {
+                short val = BitConverter.ToInt16(buffer, i);
+
+                val = Math.Abs(val);
+
+                ave += (double)val / (buffer.Length / 2);
+            }
+
+            return (double)ave / short.MaxValue;
+        }
+
+        /// <summary>
+        /// recoomand range [ 0.5 - 2.0 ]
+        /// </summary>
+        /// <param name="gain"></param>
+        /// <returns></returns>
+        public bool Gain(double gain)
+        {
+            bool overflow = false;
+
+            Position = DataOffset + 8;
+
+            byte[] buffer = new byte[DataLength];
+            Read(buffer, 0, buffer.Length);
+
+            Position = DataOffset + 8;
+
+            for (int i = 0; i < buffer.Length; i += 2)
+            {
+                short val = BitConverter.ToInt16(buffer, i);
+
+                if(val*gain > short.MaxValue || val*gain < short.MinValue)
+                {
+                    overflow = true;
+                }
+
+                val = (short)(val*gain);
+
+                Write(BitConverter.GetBytes(val));
+            }
+
+            return overflow;
+        }
+
         /// <summary>
         /// 指定した秒数の無音を音声の最後に追加する
         /// IsPCMがtrueではない場合はエラーになる（正常に機能しない可能性が高いので）

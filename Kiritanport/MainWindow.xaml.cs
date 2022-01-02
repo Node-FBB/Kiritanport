@@ -63,17 +63,18 @@ namespace Kiritanport
 
                         if (!IsVisible)
                         {
-                            if (ui is not Label && ui is not TextBlock && ui is not StatusBar && ui is not Menu)
+                            if (ui is not Label && ui is not TextBlock && ui is not StatusBar)
                             {
                                 ui.IsEnabled = value;
                             }
                         }
-                        else if (ui.IsVisible && ui is not Label && ui is not TextBlock && ui is not StatusBar && ui is not Menu)
+                        else if (ui.IsVisible && ui is not Label && ui is not TextBlock && ui is not StatusBar)
                         {
                             ui.IsEnabled = value;
                         }
                     }
                 }
+
             }
         }
 
@@ -85,9 +86,6 @@ namespace Kiritanport
             BT_Stop.IsEnabled = false;
 
             ContextMenu menu = new();
-
-
-
             MenuItem move = new() { Header = "移動(_M)" };
             move.Click += (sender, e) =>
             {
@@ -391,6 +389,11 @@ namespace Kiritanport
                 }
             };
 
+            VP_Gain.ValueChanged += (_, _) =>
+            {
+                PL_PhraseList.MasterVolume = VP_Gain.Value;
+            };
+
             for (int i = 0; i < StyleControls.Count; i++)
             {
                 int id = i;
@@ -572,7 +575,6 @@ namespace Kiritanport
             {
                 return;
             }
-            PL_PhraseList.RenamePreset(CB_PresetList.SelectedIndex);
 
             if (CB_PresetList.SelectedItem is ComboBoxItem citem && citem.Content is VoicePreset preset)
             {
@@ -586,6 +588,8 @@ namespace Kiritanport
                 CB_PresetList.SelectedIndex = index;
                 CB_PresetList.SelectionChanged += CB_PresetList_SelectionChanged;
             }
+
+            PL_PhraseList.RenamePreset(CB_PresetList.SelectedIndex);
         }
 
         private void LoadConfig()
@@ -778,6 +782,50 @@ namespace Kiritanport
         }
         private void BT_Output_Click(object sender, RoutedEventArgs e)
         {
+            Ext.GCMZDrops.IsEnable = MI_GCMZ.IsChecked;
+
+            if (File.Exists(Ext.GCMZDrops.ProjectPath))
+            {
+                if (!Directory.Exists(PL_PhraseList.OutputDir))
+                {
+                    if (CustomMessageBox.Show(this, "Aviutlプロジェクトファイルと同じ場所へ出力しますか？(右クリックで指定を解除できます)", "確認", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                    {
+                        if(Directory.GetParent(Ext.GCMZDrops.ProjectPath)?.FullName is string path)
+                        {
+                            PL_PhraseList.OutputDir = path;
+                        }
+                    }
+                }
+            }
+
+            if (!Directory.Exists(PL_PhraseList.OutputDir))
+            {
+                if (CustomMessageBox.Show(this, "出力先の設定をします。(右クリックで指定を解除できます)", "確認", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
+                {
+                    using CommonOpenFileDialog dialog = new()
+                    {
+                        Title = "出力フォルダ選択",
+                        IsFolderPicker = true,
+                    };
+
+                    if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                    {
+                        PL_PhraseList.OutputDir = dialog.FileName;
+                    }
+                    else
+                    {
+                        CustomMessageBox.Show(this, "出力をキャンセルしました。");
+                        return;
+                    }
+                }
+                else
+                {
+                    CustomMessageBox.Show(this, "出力をキャンセルしました。");
+                    return;
+                }
+            }
+
+
             int cnt;
 
             if (CB_Cache.IsChecked == true)
@@ -802,6 +850,14 @@ namespace Kiritanport
                     PL_PhraseList.SpeechEnd += PL_PhraseList.SaveWaves;
                     PL_PhraseList.SpeechPhraseList(CB_Cache.IsChecked == true, false);
                 }
+            }
+        }
+        private void Button_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (Directory.Exists(PL_PhraseList.OutputDir))
+            {
+                PL_PhraseList.OutputDir = "";
+                CustomMessageBox.Show(this, "出力先の設定を解除しました。");
             }
         }
         private void CB_AccentProviderList_Loaded(object sender, RoutedEventArgs e)
@@ -1324,5 +1380,21 @@ namespace Kiritanport
 
             dialog.Dispose();
         }
+
+        private void PL_PhraseList_SpeechEnd(object sender, MyEventArgs e)
+        {
+            PL_PhraseList.SpeechEnd -= PL_PhraseList_SpeechEnd;
+            if(e.Data is Wave wave)
+            {
+                CustomMessageBox.Show(this, $"max:{wave.GetMaxValue()} ave:{wave.GetAvarageValue()}");
+            }
+        }
+
+        private void MI_CheckVolume_Click(object sender, RoutedEventArgs e)
+        {
+            PL_PhraseList.SpeechEnd += PL_PhraseList_SpeechEnd;
+            PL_PhraseList.GetSelectedWave();
+        }
+
     }
 }

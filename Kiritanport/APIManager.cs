@@ -79,10 +79,20 @@ namespace Kiritanport
             apis["VV"] = new Process();
             apis["AS"] = new Process();
 
+            if (Directory.Exists(@".\APIs"))
+            {
+                //"C:\Users\USER\source\repos\Kiritanport_3\Kiritanport\bin\Debug\net6.0-windows\APIs\"C:\Users\USER\source\repos\Kiritanport_3\Kiritanport\bin\Debug\net6.0-windows\APIs\AssistantSeika\CLIAssistantSeika.exe""
+                apis["VR"].StartInfo.FileName = @".\APIs\VOICEROID2\CLIVoiceroid.exe";
+                apis["VV"].StartInfo.FileName = @".\APIs\VOICEVOX\CLIVoicevox.exe";
+                apis["AS"].StartInfo.FileName = @".\APIs\AssistantSeika\CLIAssistantSeika.exe";
+            }
+#if DEBUG
 
-            apis["VR"].StartInfo.FileName = @"..\..\..\..\CLIVoiceroid\bin\Debug\CLIVoiceroid.exe";
-            apis["VV"].StartInfo.FileName = @"..\..\..\..\CLIVoicevox\bin\Debug\net6.0\CLIVoicevox.exe";
-            apis["AS"].StartInfo.FileName = @"..\..\..\..\CLIAssistantSeika\bin\Debug\CLIAssistantSeika.exe";
+            //apis["VR"].StartInfo.FileName = @"..\..\..\..\CLIVoiceroid\bin\Debug\CLIVoiceroid.exe";
+            //apis["VV"].StartInfo.FileName = @"..\..\..\..\CLIVoicevox\bin\Debug\net6.0\CLIVoicevox.exe";
+            //apis["AS"].StartInfo.FileName = @"..\..\..\..\CLIAssistantSeika\bin\Debug\CLIAssistantSeika.exe";
+
+#endif
 
             StreamReader reader = new(@".\settings.ini");
             while (reader.ReadLine() is string str)
@@ -97,29 +107,6 @@ namespace Kiritanport
                     }
                 }
             }
-
-            /*
-            if (File.Exists(@".\APIs\VOICEROID2\VoiceroidAPI.exe"))
-            {
-                apis["VR"].StartInfo.FileName = @".\APIs\VOICEROID2\VoiceroidAPI.exe";
-            }
-            else
-            {
-                apis["VR"].StartInfo.FileName = @"..\..\..\..\VoiceroidAPI\bin\Debug\VoiceroidAPI.exe";
-            }
-            */
-            /*
-            if (File.Exists(@".\APIs\VOICEVOX\VoicevoxAPI.exe"))
-            {
-                apis["VV"].StartInfo.FileName = @".\APIs\VOICEVOX\VoicevoxAPI.exe";
-            }
-            else
-            {
-                apis["VV"].StartInfo.FileName = @"..\..\..\..\VoicevoxAPI\bin\Debug\net6.0\VoicevoxAPI.exe";
-            }
-            */
-
-
 
             SynchronizationContext? syncContext = SynchronizationContext.Current;
 
