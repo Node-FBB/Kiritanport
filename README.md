@@ -54,4 +54,4 @@ https://hgotoh.jp/wiki/doku.php/start<br>
 
 #### Nkyoku様 ([voiceroid_daemon](https://github.com/Nkyoku/voiceroid_daemon) - MIT License)
 #### oov様 ([aviutl_gcmzdrops](https://github.com/oov/aviutl_gcmzdrops) - MIT License)
-#### [努力したＷｉｋｉ様](https://hgotoh.jp/wiki/doku.php/start)
+#### [努力したＷｉｋｉ](https://hgotoh.jp/wiki/doku.php/start)様
