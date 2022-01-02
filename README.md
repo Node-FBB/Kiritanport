@@ -7,10 +7,12 @@
 ・本ツールの動作には「VOICEROID2」「VOICEVOX」「AssistantSeika（及び対応している合成音声ソフト）」の内、最低でも1つ以上の外部ツールが必要です。<br>
 ・「VOICEROID2」は本ツール起動前及び起動中に「起動しない」でください。<br>
 ・「VOICEVOX」及び「AssistantSeika」は本ツール起動前に「起動しておいて」ください。<br>
-・「VOICEROID2」のインストール場所をデフォルトから変更している場合、「settings.ini」ファイルを編集が必要です。<br>
+・「VOICEROID2」のインストール場所をデフォルトから変更している場合、「settings.ini」ファイルの編集が必要です。<br>
 ・「フレーズ辞書」機能は「VOICEROID2」および「VOICEVOX」で利用可能です。<br>
-・「単語辞書」機能の利用には「VOICEROID2」が必要です。<br>
+・「単語辞書」機能の利用には「VOICEROID2」が必要です。
 （VOICEVOXで単語辞書を利用する場合は、使用する辞書をDefaultからVoiceroidへ変更してください）<br>
+・「単語辞書」機能を利用する場合、商用利用可能なVOICEVOX音声であっても商用利用することができなくなります。
+（VOICEROID2の機能を利用することになるのでVOICEVOX、VOICEROID2両方のライセンスに従う必要があります）<br>
 ・「AssistantSeika」の設定で基本設定タブの「16bitのwavファイルを使用」及び「前後の無音部分削除」を選択してください。<br>
 ### 入手
 https://github.com/Node-FBB/Kiritanport/releases
@@ -42,19 +44,14 @@ https://hgotoh.jp/wiki/doku.php/start<br>
 #### AviUtl
 #### PSDToolKit
 ### 使用ライブラリ
-#### Codeer.Friendly  - MIT License
-https://github.com/Codeer-Software/Friendly
-#### NAudio  - Apache License 2.0
-https://github.com/naudio/NAudio
-#### AITalk Liblary
-https://www.ai-j.jp
+#### [Codeer.Friendly](https://github.com/Codeer-Software/Friendly)  - MIT License
+#### [NAudio](https://github.com/naudio/NAudio)  - Apache License 2.0
+#### [ITalk Liblary](https://www.ai-j.jp) - Need a License (and Non-Commercial use)
+
 ### 謝辞
 本ツールの作成に当たって以下の方々の公開してくださっているツールやコードを利用させていただきました<br>
 記して感謝申し上げます<br>
 
-#### Nkyoku様 (voiceroid_daemon - MIT License)
-https://github.com/Nkyoku/voiceroid_daemon
-#### oov様 (aviutl_gcmzdrops - MIT License)
-https://github.com/oov/aviutl_gcmzdrops
-#### 努力したＷｉｋｉ様
-https://hgotoh.jp/wiki/doku.php/start
+#### Nkyoku様 ([voiceroid_daemon](https://github.com/Nkyoku/voiceroid_daemon) - MIT License)
+#### oov様 ([aviutl_gcmzdrops](https://github.com/oov/aviutl_gcmzdrops) - MIT License)
+#### [努力したＷｉｋｉ様](https://hgotoh.jp/wiki/doku.php/start)
