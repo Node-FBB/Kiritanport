@@ -21,7 +21,7 @@ https://github.com/Node-FBB/Kiritanport/releases
 ### 使い方
 https://github.com/Node-FBB/Kiritanport/wiki
 ### 更新履歴
-0.3.0　UIを.NET6に変更し、テスト版公開<br>
+0.3.0　UIを.NET6に変更、テスト版公開<br>
 <br>
 0.1.1　デスクトップマスコット機能追加（諸事情により公開停止）<br>
 0.1.0　UI操作からAPI操作へ切替<br>
