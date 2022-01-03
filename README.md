@@ -4,6 +4,7 @@
 未完成です<br>
 マニュアルを含むドキュメントも未整備です<br>
 <br>
+・本ツールの起動には[.NET6ランタイム](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)が必要です。<br>
 ・本ツールの動作には「VOICEROID2」「VOICEVOX」「AssistantSeika（及び対応している合成音声ソフト）」の内、最低でも1つ以上の外部ツールが必要です。<br>
 ・「VOICEROID2」は本ツール起動前及び起動中に「起動しない」でください。<br>
 ・「VOICEVOX」及び「AssistantSeika」は本ツール起動前に「起動しておいて」ください。<br>
@@ -19,7 +20,7 @@ https://github.com/Node-FBB/Kiritanport/releases
 ### 使い方
 https://github.com/Node-FBB/Kiritanport/wiki
 ### 更新履歴
-0.3.0　テスト版公開<br>
+0.3.0　UIを.NET6に変更し、テスト版公開<br>
 <br>
 0.1.1　デスクトップマスコット機能追加（諸事情により公開停止）<br>
 0.1.0　UI操作からAPI操作へ切替<br>
@@ -42,7 +43,9 @@ ver 0.1.1 では動作しないことが確認されています。ver 0.9.3 で
 ver 20211205/u で動作確認済みです。
 ### 外部ツール（連携）
 #### [AviUtl](http://spring-fragrance.mints.ne.jp/aviutl/)
+ver 1.1.0 で動作確認済み。
 #### [PSDToolKit](https://oov.github.io/aviutl_psdtoolkit/index.html)
+ver 0.2beta56 で動作確認済み。
 ### 使用ライブラリ
 #### [Codeer.Friendly](https://github.com/Codeer-Software/Friendly)  - MIT License (ver 0.0.xで使用)
 #### [NAudio](https://github.com/naudio/NAudio)  - Apache License 2.0 (ver 0.0.xで使用)
