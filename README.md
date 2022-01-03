@@ -33,10 +33,13 @@ https://github.com/Node-FBB/Kiritanport/wiki
 本ツールの動作には以下3つのうち、少なくとも1つ以上の外部ツールが必要となります
 #### [VOICEROID2](https://www.ah-soft.com)
 VOICEROID音声の利用に必要（EXおよびEX+は不可、VOICEROID2にボイスライブラリをインポートすれば可）<br>
+ver 2.0.1.0 では動作しないことが確認されています。ver 2.1.1.0 で動作確認済みです。
 #### [VOICEVOX](https://voicevox.hiroshiba.jp)
 VOICEVOX音声の利用に必要<br>
+ver 0.1.1 では動作しないことが確認されています。ver 0.9.3 で動作確認済みです。
 #### [AssistantSeika](https://hgotoh.jp/wiki/doku.php/start)
 対応している多数の合成音声ソフトから音声を取得できます（アクセント等の変更はできません）<br>
+ver 20211205/u で動作確認済みです。
 ### 外部ツール（連携）
 #### [AviUtl](http://spring-fragrance.mints.ne.jp/aviutl/)
 #### [PSDToolKit](https://oov.github.io/aviutl_psdtoolkit/index.html)
