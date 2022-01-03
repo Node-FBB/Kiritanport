@@ -5,6 +5,7 @@
 マニュアルを含むドキュメントも未整備です<br>
 <br>
 ・本ツールの起動には[.NET Runtime 6.0](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)が必要です。<br>
+（ない場合は初回起動時に案内がでます。）
 ・本ツールの動作には「VOICEROID2」「VOICEVOX」「AssistantSeika（及び対応している合成音声ソフト）」の内、最低でも1つ以上の外部ツールが必要です。<br>
 ・「VOICEROID2」は本ツール起動前及び起動中に「起動しない」でください。<br>
 ・「VOICEVOX」及び「AssistantSeika」は本ツール起動前に「起動しておいて」ください。<br>
