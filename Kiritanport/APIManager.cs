@@ -81,16 +81,15 @@ namespace Kiritanport
 
             if (Directory.Exists(@".\APIs"))
             {
-                //"C:\Users\USER\source\repos\Kiritanport_3\Kiritanport\bin\Debug\net6.0-windows\APIs\"C:\Users\USER\source\repos\Kiritanport_3\Kiritanport\bin\Debug\net6.0-windows\APIs\AssistantSeika\CLIAssistantSeika.exe""
                 apis["VR"].StartInfo.FileName = @".\APIs\VOICEROID2\CLIVoiceroid.exe";
                 apis["VV"].StartInfo.FileName = @".\APIs\VOICEVOX\CLIVoicevox.exe";
                 apis["AS"].StartInfo.FileName = @".\APIs\AssistantSeika\CLIAssistantSeika.exe";
             }
 #if DEBUG
 
-            //apis["VR"].StartInfo.FileName = @"..\..\..\..\CLIVoiceroid\bin\Debug\CLIVoiceroid.exe";
-            //apis["VV"].StartInfo.FileName = @"..\..\..\..\CLIVoicevox\bin\Debug\net6.0\CLIVoicevox.exe";
-            //apis["AS"].StartInfo.FileName = @"..\..\..\..\CLIAssistantSeika\bin\Debug\CLIAssistantSeika.exe";
+            apis["VR"].StartInfo.FileName = @"..\..\..\..\CLIVoiceroid\bin\Debug\CLIVoiceroid.exe";
+            apis["VV"].StartInfo.FileName = @"..\..\..\..\CLIVoicevox\bin\Debug\net6.0\CLIVoicevox.exe";
+            apis["AS"].StartInfo.FileName = @"..\..\..\..\CLIAssistantSeika\bin\Debug\CLIAssistantSeika.exe";
 
 #endif
 

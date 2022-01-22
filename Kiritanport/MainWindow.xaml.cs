@@ -21,6 +21,12 @@ namespace Kiritanport
         public VoicePreset[] Presets { get; set; } = Array.Empty<VoicePreset>();
         public string PathPhraseDictionary { get; set; } = @".\tmp\tmp.pdic";
         public string PathWordDictionary { get; set; } = @".\tmp\tmp.wdic";
+
+        public int PauseLong { get; set; } = 370;
+        public int PauseShort { get; set; } = 150;
+        public int PauseSentence { get; set; } = 800;
+        public double MasterVolume { get; set; } = 1.0;
+        public bool Enable_GCMZDrops { get; set; } = false;
     }
 
     /// <summary>
@@ -61,20 +67,23 @@ namespace Kiritanport
                             continue;
                         }
 
-                        if (!IsVisible)
+                        if(ui is Label || ui is TextBlock || ui is StatusBar)
                         {
-                            if (ui is not Label && ui is not TextBlock && ui is not StatusBar)
-                            {
-                                ui.IsEnabled = value;
-                            }
+                            continue;
                         }
-                        else if (ui.IsVisible && ui is not Label && ui is not TextBlock && ui is not StatusBar)
+
+                        if(!IsVisible || ui.IsVisible)
                         {
                             ui.IsEnabled = value;
+                            continue;
+                        }
+
+                        if(!ui.IsVisible && !ui.IsEnabled && value)
+                        {
+                            ui.IsEnabled = true;
                         }
                     }
                 }
-
             }
         }
 
@@ -243,18 +252,21 @@ namespace Kiritanport
                 }
             };
 
-            //IInputElement? element = null;
+            IInputElement? element = null;
             PL_PhraseList.SpeechEnd += (sender, e) =>
             {
                 IsEnabled = true;
                 BT_Stop.IsEnabled = false;
 
                 PL_PhraseList.Focus();
-                //element?.Focus();
+                if (element is TextBox)
+                {
+                    element?.Focus();
+                }
             };
             PL_PhraseList.SpeechBegin += (sender, e) =>
             {
-                //element = FocusManager.GetFocusedElement(this);
+                element = FocusManager.GetFocusedElement(this);
 
                 IsEnabled = false;
                 BT_Stop.IsEnabled = true;
@@ -626,6 +638,18 @@ namespace Kiritanport
                             }
                         }
                     }
+                    PL_PhraseList.MasterVolume = configure.MasterVolume;
+                    PL_PhraseList.PauseShort = configure.PauseShort;
+                    PL_PhraseList.PauseLong = configure.PauseLong;
+                    PL_PhraseList.PauseSentence = configure.PauseSentence;
+
+                    TB_PauseLong.Text = configure.PauseLong.ToString();
+                    TB_PauseShort.Text = configure.PauseShort.ToString();
+                    TB_PauseSentence.Text = configure.PauseSentence.ToString();
+                    VP_Gain.Value = configure.MasterVolume;
+
+                    MI_GCMZ.IsChecked = configure.Enable_GCMZDrops;
+
                 }
             }
 
@@ -691,8 +715,16 @@ namespace Kiritanport
         }
         private void SaveConfig()
         {
-            if (IsInit)
+            if (IsInit && configure is not null)
             {
+                configure.MasterVolume = PL_PhraseList.MasterVolume;
+                configure.PauseShort = PL_PhraseList.PauseShort;
+                configure.PauseLong = PL_PhraseList.PauseLong;
+                configure.PauseSentence = PL_PhraseList.PauseSentence;
+
+                configure.Enable_GCMZDrops = MI_GCMZ.IsChecked;
+
+
                 XmlSerializer serializer = new(typeof(Configure));
                 using StreamWriter writer = new(PathConfigre);
                 serializer.Serialize(writer, configure);
@@ -790,7 +822,7 @@ namespace Kiritanport
                 {
                     if (CustomMessageBox.Show(this, "Aviutlプロジェクトファイルと同じ場所へ出力しますか？(右クリックで指定を解除できます)", "確認", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                     {
-                        if(Directory.GetParent(Ext.GCMZDrops.ProjectPath)?.FullName is string path)
+                        if (Directory.GetParent(Ext.GCMZDrops.ProjectPath)?.FullName is string path)
                         {
                             PL_PhraseList.OutputDir = path;
                         }
@@ -899,7 +931,7 @@ namespace Kiritanport
                 TB_Preset_Name.TextChanged += TB_Preset_Name_TextChanged;
             }
         }
-        private void StatusBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void StatusBar_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (APIManager.Log.Length > 1024)
             {
@@ -1384,7 +1416,7 @@ namespace Kiritanport
         private void PL_PhraseList_SpeechEnd(object sender, MyEventArgs e)
         {
             PL_PhraseList.SpeechEnd -= PL_PhraseList_SpeechEnd;
-            if(e.Data is Wave wave)
+            if (e.Data is Wave wave)
             {
                 CustomMessageBox.Show(this, $"max:{wave.GetMaxValue()} ave:{wave.GetAvarageValue()}");
             }
@@ -1396,5 +1428,9 @@ namespace Kiritanport
             PL_PhraseList.GetSelectedWave();
         }
 
+        private void BT_PhraseClear_Click(object sender, RoutedEventArgs e)
+        {
+            PL_PhraseList.ClearAllText();
+        }
     }
 }

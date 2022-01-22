@@ -273,6 +273,14 @@ namespace Kiritanport
             (SelectedItem as PhraseEditView)?.Text.Focus();
         }
 
+        public void ClearAllText()
+        {
+            foreach(PhraseEditView item in Items)
+            {
+                item.Text.Text = "";
+            }
+        }
+
         /// <summary>
         /// success,failedに指定した色で約1秒間テキストボックスの色が変わる
         /// failedがnullの場合、AIKanaが取得できない場合でもCheckが入っているフレーズの文章を取得するが、
@@ -695,9 +703,12 @@ namespace Kiritanport
             if (e.Data is Wave wave)
             {
 
-                if(MasterVolume != 1.0)
+                if (MasterVolume != 1.0)
                 {
-                    wave.Gain(MasterVolume);
+                    if (wave.Gain(MasterVolume))
+                    {
+                        received_item?.Notice(Brushes.Red, 1000);
+                    }
                 }
 
                 if (received_item is not null)
@@ -711,7 +722,7 @@ namespace Kiritanport
                     processing = false;
                     if (notice)
                     {
-                        SpeechEnd?.Invoke(this, new MyEventArgs() { Data = wave});
+                        SpeechEnd?.Invoke(this, new MyEventArgs() { Data = wave });
                         notice = false;
                     }
                 }
@@ -876,9 +887,18 @@ namespace Kiritanport
                 {
                     SelectedIndex--;
                 }
+
                 Items.Remove(phrase);
                 phrase.Refresh();
                 Stocks.Enqueue(phrase);
+
+                if (focus)
+                {
+                    if (SelectedIndex == -1 && Items.Count > 0)
+                    {
+                        SelectedIndex = 0;
+                    }
+                }
             }
             CheckStateChanged?.Invoke(this, new EventArgs());
         }

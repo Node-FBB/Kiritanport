@@ -131,7 +131,7 @@
         <Button Content="再生" Margin="705,390,0,0" VerticalAlignment="Top" Click="BT_WordPlay_Click" Height="20" Width="40" HorizontalAlignment="Left"/>
         <Button Content="保存" Margin="745,390,0,0" VerticalAlignment="Top" Click="BT_WordSave_Click" Height="20" Width="40" HorizontalAlignment="Left"/>
         <ComboBox x:Name="CB_WordClass" Margin="605,365,0,0" VerticalAlignment="Top" Height="20" HorizontalAlignment="Left" Width="180"/>
-        <StatusBar VerticalAlignment="Bottom" MouseLeftButtonDown="StatusBar_MouseLeftButtonDown">
+        <StatusBar VerticalAlignment="Bottom" MouseRightButtonDown="StatusBar_MouseRightButtonDown">
             <TextBlock x:Name="TB_Log" TextWrapping="Wrap"/>
         </StatusBar>
         <ComboBox x:Name="CB_AccentProviderList" HorizontalAlignment="Left" Margin="15,400,0,0" VerticalAlignment="Top" Width="120" Loaded="CB_AccentProviderList_Loaded" Height="20"/>
@@ -140,7 +140,7 @@
         <Button x:Name="BT_PhraseAdd" Content="＋" HorizontalAlignment="Left" Margin="535,230,0,0" VerticalAlignment="Top" Width="20" Height="20" Click="BT_PhraseAdd_Click" Focusable="False" FontFamily="Yu Gothic UI"/>
         <Button Content="編集" HorizontalAlignment="Left" Margin="485,230,0,0" VerticalAlignment="Top" Width="40" Height="20" Click="BT_PhraseEdit_Click" Focusable="False"/>
         <CheckBox x:Name="CB_Cache" Content="Cache" HorizontalAlignment="Left" Margin="90,265,0,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Height="20"/>
-        <CheckBox x:Name="CB_All" Content="All / Reset" HorizontalAlignment="Left" Margin="510,30,0,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Height="20"/>
+        <CheckBox x:Name="CB_All" Content="All / Reset" HorizontalAlignment="Left" Margin="510,30,0,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Height="20" IsChecked="True"/>
         <Border BorderBrush="Black" BorderThickness="1" d:IsHidden="True"/>
         <Button Content="保存" HorizontalAlignment="Left" Margin="240,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_PhraseSave_Click" Height="20"/>
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,400,0,0" Orientation="Horizontal">
@@ -156,6 +156,7 @@
             <Label Content="主音量" VerticalAlignment="Center" Width="50" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
             <local:VoiceParameterView x:Name="VP_Gain" VerticalAlignment="Center" LargeChange="0.1" Maximum="4" SmallChange="0.01"/>
         </StackPanel>
+        <Button Content="消去" HorizontalAlignment="Left" Margin="15,265,0,0" VerticalAlignment="Top" Width="40" Click="BT_PhraseClear_Click" Height="20"/>
 
     </Grid>
 </Window>
