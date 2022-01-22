@@ -4,6 +4,8 @@
 未完成です<br>
 マニュアルを含むドキュメントも未整備です<br>
 <br>
+・本ツールの起動には[.NET Runtime 6.0](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)が必要です。<br>
+（ない場合は初回起動時に案内がでます。）<br>
 ・本ツールの動作には「VOICEROID2」「VOICEVOX」「AssistantSeika（及び対応している合成音声ソフト）」の内、最低でも1つ以上の外部ツールが必要です。<br>
 ・「VOICEROID2」は本ツール起動前及び起動中に「起動しない」でください。<br>
 ・「VOICEVOX」及び「AssistantSeika」は本ツール起動前に「起動しておいて」ください。<br>
@@ -16,10 +18,10 @@
 ・「AssistantSeika」の設定で基本設定タブの「16bitのwavファイルを使用」及び「前後の無音部分削除」を選択してください。<br>
 ### 入手
 https://github.com/Node-FBB/Kiritanport/releases
-### マニュアル
+### 使い方
 https://github.com/Node-FBB/Kiritanport/wiki
 ### 更新履歴
-0.3.0　テスト版公開<br>
+0.3.0　UIを.NET6に変更、テスト版公開<br>
 <br>
 0.1.1　デスクトップマスコット機能追加（諸事情により公開停止）<br>
 0.1.0　UI操作からAPI操作へ切替<br>
@@ -33,13 +35,18 @@ https://github.com/Node-FBB/Kiritanport/wiki
 本ツールの動作には以下3つのうち、少なくとも1つ以上の外部ツールが必要となります
 #### [VOICEROID2](https://www.ah-soft.com)
 VOICEROID音声の利用に必要（EXおよびEX+は不可、VOICEROID2にボイスライブラリをインポートすれば可）<br>
+ver 2.0.1.0 では動作しないことが確認されています。ver 2.1.1.0 (32bit版) で動作確認済みです。
 #### [VOICEVOX](https://voicevox.hiroshiba.jp)
 VOICEVOX音声の利用に必要<br>
+ver 0.1.1 では動作しないことが確認されています。ver 0.9.3 で動作確認済みです。
 #### [AssistantSeika](https://hgotoh.jp/wiki/doku.php/start)
 対応している多数の合成音声ソフトから音声を取得できます（アクセント等の変更はできません）<br>
+ver 20211205/u で動作確認済みです。
 ### 外部ツール（連携）
 #### [AviUtl](http://spring-fragrance.mints.ne.jp/aviutl/)
+ver 1.1.0 で動作確認済み。
 #### [PSDToolKit](https://oov.github.io/aviutl_psdtoolkit/index.html)
+ver 0.2beta56 で動作確認済み。
 ### 使用ライブラリ
 #### [Codeer.Friendly](https://github.com/Codeer-Software/Friendly)  - MIT License (ver 0.0.xで使用)
 #### [NAudio](https://github.com/naudio/NAudio)  - Apache License 2.0 (ver 0.0.xで使用)
